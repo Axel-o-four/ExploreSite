@@ -49,7 +49,19 @@ Consegna assignment #1\
 
 ## Assignment #2
 
-TBD
+Questo assignment richiede la creazione degli scenari dei task, un’analisi di sistemi esistenti e la stesura delle idee iniziali di design. Questi aspetti formeranno le basi per il successivo assignment, che consisterà nell’individuazione dei principi di usabilità che il vostro prototipo low-fi dovrebbe supportare e si concluderà con la creazione del prototipo.
+
+### Struttura della consegna
+
+Consegna assignment #2\
+┣ Assignment #2.docx - documento di consegna dell'assignment in formato Office Open XML Document\
+┣ Assignment #2.pdf - documento di consegna dell'assignment in formato Portable Document Format\
+┗ Assignment #2 compresso.pdf - documento di consegna dell'assignment in formato Portable Document Format, compresso per consentire il caricamento del file secondo i limiti di upload di elearning
+
+1. Realizzare scenari e casi d'uso
+2. Revisionare personaggi e task precedentemente individuati
+3. Analisi comparativa di altri sistemi esistenti
+4. Prototipazione delle idee iniziali di progetto
 
 ## Assignment #3
 
