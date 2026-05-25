@@ -1,4 +1,4 @@
-# Progetto di HCI - Interazione Uomo-Macchina a.a. 2025/2026 (Prof.ssa G. Vitiello)
+# Progetto di HCI - Interazione Uomo-Macchina a.a. 2025/2026 (Prof.ssa G. Vitiello) - Gruppo 14
 
 ### Composizione del project group
 
@@ -51,6 +51,11 @@ Consegna assignment #1\
 
 Questo assignment richiede la creazione degli scenari dei task, un’analisi di sistemi esistenti e la stesura delle idee iniziali di design. Questi aspetti formeranno le basi per il successivo assignment, che consisterà nell’individuazione dei principi di usabilità che il vostro prototipo low-fi dovrebbe supportare e si concluderà con la creazione del prototipo.
 
+1. Realizzare scenari e casi d'uso
+2. Revisionare personaggi e task precedentemente individuati
+3. Analisi comparativa di altri sistemi esistenti
+4. Prototipazione delle idee iniziali di progetto
+
 ### Struttura della consegna
 
 Consegna assignment #2\
@@ -58,11 +63,36 @@ Consegna assignment #2\
 ┣ Assignment #2.pdf - documento di consegna dell'assignment in formato Portable Document Format\
 ┗ Assignment #2 compresso.pdf - documento di consegna dell'assignment in formato Portable Document Format, compresso per consentire il caricamento del file secondo i limiti di upload di elearning
 
-1. Realizzare scenari e casi d'uso
-2. Revisionare personaggi e task precedentemente individuati
-3. Analisi comparativa di altri sistemi esistenti
-4. Prototipazione delle idee iniziali di progetto
-
 ## Assignment #3
 
-TBD
+Questo assignment richiede la costruzione del prototipo low-fi del sistema che state progettando. Insieme ai paper sketch, è richiesta la preparazione di una dimostrazione del comportamento (simulato) del prototipo, sui task principali che si sono individuati e una relazione in cui si spiega come si è proceduto nelle varie fasi della costruzione, secondo l’approccio iterativo al design che abbiamo studiato.
+
+1. Svolgere i paper sketch iniziali
+2. Svolgere la tecnica del mago di Oz sui principali task
+3. Realizzare il primo prototipo interattivo con i pattern
+4. Eseguire la valutazione del prototipo interattivo con il cognitive walkthrough o la valutazione euristica, svolgendo le opportune modifiche al prototipo
+5. Riportare le modifiche da fare prima dell'implementazione del sistema
+
+### Struttura della consegna
+
+Consegna assignment #3\
+┣ Assignment #3.docx - documento di consegna dell'assignment in formato Office Open XML Document\
+┗ Assignment #3.pdf - documento di consegna dell'assignment in formato Portable Document Format\
+
+## Presentazione primi 3 assignment di progetto
+
+La presentazione dei primi tre assignment del progetto dovrà essere preparata in PowerPoint e contenere una descrizione sintetica dei punti salienti trattati in ciascun assignment. In particolare:
+
+- Breve descrizione del problema affrontato e analisi di contesto
+- Analisi comparativa con pro e contro di ciascun sistema
+- Idee iniziali di progetto
+- Collegamento ai paper sketch e alla tecnica del mago di Oz
+- Collegamento al prototipo con risultati della valutazione
+- Modofiche da apportare per l'implementazione
+
+### Struttura del materiale
+
+Presentazione prototipo\
+┣ Presentazione prototipo.key - presentazione dei primi 3 assignment in formato proprietario Apple Keynote\
+┣ Presentazione prototipo.pptx - presentazione dei primi 3 assignment in formato Office Open XML Presentation\
+┗ Presentazione prototipo.pdf - presentazione dei primi 3 assignment in formato Portable Document Format\
