@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.hciproject.exploresite.poi.POIDetailsPage
+import com.hciproject.exploresite.poi.PointOfInterest
 import com.hciproject.exploresite.ui.theme.ExploreSiteTheme
 import org.osmdroid.config.Configuration
 
@@ -92,7 +93,6 @@ fun ExploreSiteApp(localPermission: Boolean) {
     var mapZoom by rememberSaveable { mutableStateOf(15.0) }
     var hasInitiallyCentered by rememberSaveable { mutableStateOf(false) }
 
-    // Handle back button when viewing POI details
     if (selectedPoi != null) {
         BackHandler {
             selectedPoi = null
@@ -103,7 +103,6 @@ fun ExploreSiteApp(localPermission: Boolean) {
         modifier = Modifier.fillMaxSize().systemBarsPadding(),
         containerColor = Color.White,
         bottomBar = {
-            // Hide bottom bar when viewing POI details
             if (selectedPoi == null) {
                 Box(
                     modifier = Modifier.fillMaxWidth().padding(8.dp, 4.dp),
@@ -161,31 +160,34 @@ fun ExploreSiteApp(localPermission: Boolean) {
         }
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
+            // Keep MapPage always alive
+            MapPage(
+                modifier = Modifier.fillMaxSize(),
+                localPermission = localPermission,
+                mapLat = mapLat,
+                mapLon = mapLon,
+                mapZoom = mapZoom,
+                hasInitiallyCentered = hasInitiallyCentered,
+                onMapStateChanged = { lat, lon, zoom, centered ->
+                    mapLat = lat
+                    mapLon = lon
+                    mapZoom = zoom
+                    hasInitiallyCentered = centered
+                },
+                onPoiClick = { poi -> selectedPoi = poi },
+                uiVisible = (selectedPoi == null && currentDestination == AppDestinations.MAP)
+            )
+
+            // Overlays for other screens
             if (selectedPoi != null) {
                 POIDetailsPage(
                     poi = selectedPoi!!,
                     onBack = { selectedPoi = null }
                 )
-            } else {
-                when (currentDestination) {
-                    AppDestinations.MAP -> MapPage(
-                        modifier = Modifier.padding(innerPadding),
-                        localPermission = localPermission,
-                        mapLat = mapLat,
-                        mapLon = mapLon,
-                        mapZoom = mapZoom,
-                        hasInitiallyCentered = hasInitiallyCentered,
-                        onMapStateChanged = { lat, lon, zoom, centered ->
-                            mapLat = lat
-                            mapLon = lon
-                            mapZoom = zoom
-                            hasInitiallyCentered = centered
-                        },
-                        onPoiClick = { poi -> selectedPoi = poi }
-                    )
-                    AppDestinations.EXPLORE -> ExplorePage(modifier = Modifier.padding(innerPadding))
-                    AppDestinations.PROFILE -> ProfilePage(modifier = Modifier.padding(innerPadding))
-                }
+            } else if (currentDestination == AppDestinations.EXPLORE) {
+                ExplorePage(modifier = Modifier.padding(innerPadding).background(Color.White))
+            } else if (currentDestination == AppDestinations.PROFILE) {
+                ProfilePage(modifier = Modifier.padding(innerPadding).background(Color.White))
             }
         }
     }
