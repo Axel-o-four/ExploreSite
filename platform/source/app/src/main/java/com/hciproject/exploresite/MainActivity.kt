@@ -159,45 +159,6 @@ enum class AppDestinations(
     PROFILE("Profilo", R.drawable.profile);
 }
 
-/*@Composable
-fun MapPage(modifier: Modifier = Modifier, localPermission: Boolean) {
-
-    AndroidView(
-        modifier = modifier.fillMaxSize(),
-        factory = { context ->
-            MapView(context).apply {
-
-                setTileSource(TileSourceFactory.MAPNIK)
-                setMultiTouchControls(true)
-
-                controller.setZoom(15.0)
-                controller.setCenter(
-                    GeoPoint(
-                        41.9028,
-                        12.4964
-                    )
-                )
-
-                if(localPermission) {
-                    val fusedClient = LocationServices.getFusedLocationProviderClient(context)
-                    fusedClient.getCurrentLocation(com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY, null).addOnSuccessListener { location ->
-                            location?.let {
-                                controller.setCenter(GeoPoint(it.latitude, it.longitude))
-
-                                val marker = Marker(this)
-                                marker.position = GeoPoint(it.latitude, it.longitude)
-                                marker.title = "La tua posizione"
-                                overlays.add(marker)
-
-                                invalidate()
-                            }
-                        }
-                }
-            }
-        }
-    )
-}*/
-
 @Composable
 fun ExplorePage(modifier: Modifier = Modifier) {
     Box(

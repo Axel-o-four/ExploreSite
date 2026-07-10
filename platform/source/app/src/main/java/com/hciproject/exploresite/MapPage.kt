@@ -2,7 +2,6 @@ package com.hciproject.exploresite
 
 import android.location.Address
 import android.location.Geocoder
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -42,10 +42,9 @@ fun MapPage(modifier: Modifier = Modifier, localPermission: Boolean) {
     var mapViewInstance by remember { mutableStateOf<MapView?>(null) }
     val scope = rememberCoroutineScope()
 
-    // Debounced search for suggestions
     LaunchedEffect(searchText) {
         if (searchText.length > 1) {
-            delay(100) // Wait for 500ms of inactivity
+            delay(100)
             val geocoder = Geocoder(context, Locale.getDefault())
             try {
                 val results = withContext(Dispatchers.IO) {
@@ -95,6 +94,7 @@ fun MapPage(modifier: Modifier = Modifier, localPermission: Boolean) {
                 MapView(ctx).apply {
                     setTileSource(TileSourceFactory.MAPNIK)
                     setMultiTouchControls(true)
+                    setBuiltInZoomControls(false)
 
                     controller.setZoom(15.0)
                     controller.setCenter(
@@ -104,7 +104,6 @@ fun MapPage(modifier: Modifier = Modifier, localPermission: Boolean) {
                         )
                     )
 
-                    // Add Personal POIs from MapPOI.kt
                     CulturalPOI.forEach { poi ->
                         val poiMarker = Marker(this)
                         poiMarker.position = GeoPoint(poi.latitude, poi.longitude)
@@ -136,15 +135,42 @@ fun MapPage(modifier: Modifier = Modifier, localPermission: Boolean) {
             }
         )
 
-        // Search Bar with Suggestions Overlay
+        FloatingActionButton(
+            onClick = {
+                if (localPermission) {
+                    val fusedClient = LocationServices.getFusedLocationProviderClient(context)
+                    fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                        .addOnSuccessListener { location ->
+                            location?.let {
+                                val userPoint = GeoPoint(it.latitude, it.longitude)
+                                mapViewInstance?.controller?.setCenter(userPoint)
+                                mapViewInstance?.controller?.setZoom(15.0)
+                            }
+                        }
+                }
+            },
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(8.dp, 4.dp),
+            containerColor = Color.White,
+            contentColor = Color.Black,
+            shape = RoundedCornerShape(24.dp)
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.center_position),
+                contentDescription = "Centra sulla mia posizione",
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(4.dp)
                 .align(Alignment.TopCenter)
         ) {
             Surface(
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(48.dp),
                 color = Color.White,
                 shadowElevation = 8.dp
             ) {
@@ -173,9 +199,9 @@ fun MapPage(modifier: Modifier = Modifier, localPermission: Boolean) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(24.dp),
                     color = Color.White,
-                    shadowElevation = 4.dp
+                    shadowElevation = 8.dp
                 ) {
                     LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
                         items(suggestions) { address ->
