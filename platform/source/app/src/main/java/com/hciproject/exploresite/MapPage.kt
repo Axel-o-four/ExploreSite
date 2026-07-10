@@ -2,10 +2,12 @@ package com.hciproject.exploresite
 
 import android.location.Address
 import android.location.Geocoder
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -27,6 +29,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.osmdroid.events.MapListener
+import org.osmdroid.events.ScrollEvent
+import org.osmdroid.events.ZoomEvent
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
@@ -35,7 +40,16 @@ import java.util.*
 
 @Composable
 @androidx.annotation.RequiresPermission(allOf = [android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION])
-fun MapPage(modifier: Modifier = Modifier, localPermission: Boolean) {
+fun MapPage(
+    modifier: Modifier = Modifier,
+    localPermission: Boolean,
+    mapLat: Double,
+    mapLon: Double,
+    mapZoom: Double,
+    hasInitiallyCentered: Boolean,
+    onMapStateChanged: (Double, Double, Double, Boolean) -> Unit,
+    onPoiClick: (PointOfInterest) -> Unit
+) {
     val context = LocalContext.current
     var searchText by remember { mutableStateOf("") }
     var suggestions by remember { mutableStateOf<List<Address>>(emptyList()) }
@@ -96,13 +110,9 @@ fun MapPage(modifier: Modifier = Modifier, localPermission: Boolean) {
                     setMultiTouchControls(true)
                     setBuiltInZoomControls(false)
 
-                    controller.setZoom(15.0)
-                    controller.setCenter(
-                        GeoPoint(
-                            41.9028,
-                            12.4964
-                        )
-                    )
+                    // Initialize with saved state
+                    controller.setZoom(mapZoom)
+                    controller.setCenter(GeoPoint(mapLat, mapLon))
 
                     CulturalPOI.forEach { poi ->
                         val poiMarker = Marker(this)
@@ -110,6 +120,10 @@ fun MapPage(modifier: Modifier = Modifier, localPermission: Boolean) {
                         poiMarker.title = poi.name
                         poiMarker.snippet = poi.description
                         poiMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                        poiMarker.setOnMarkerClickListener { _, _ ->
+                            onPoiClick(poi)
+                            true
+                        }
                         overlays.add(poiMarker)
                     }
 
@@ -118,7 +132,12 @@ fun MapPage(modifier: Modifier = Modifier, localPermission: Boolean) {
                         fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
                             .addOnSuccessListener { location ->
                                 location?.let {
-                                    controller.setCenter(GeoPoint(it.latitude, it.longitude))
+                                    // Only center if we haven't done it yet
+                                    if (!hasInitiallyCentered) {
+                                        val userPoint = GeoPoint(it.latitude, it.longitude)
+                                        controller.setCenter(userPoint)
+                                        onMapStateChanged(it.latitude, it.longitude, mapZoom, true)
+                                    }
 
                                     val marker = Marker(this)
                                     marker.position = GeoPoint(it.latitude, it.longitude)
@@ -130,6 +149,29 @@ fun MapPage(modifier: Modifier = Modifier, localPermission: Boolean) {
                                 }
                             }
                     }
+
+                    addMapListener(object : MapListener {
+                        override fun onScroll(event: ScrollEvent?): Boolean {
+                            onMapStateChanged(
+                                mapCenter.latitude,
+                                mapCenter.longitude,
+                                zoomLevelDouble,
+                                hasInitiallyCentered
+                            )
+                            return true
+                        }
+
+                        override fun onZoom(event: ZoomEvent?): Boolean {
+                            onMapStateChanged(
+                                mapCenter.latitude,
+                                mapCenter.longitude,
+                                zoomLevelDouble,
+                                hasInitiallyCentered
+                            )
+                            return true
+                        }
+                    })
+
                     mapViewInstance = this
                 }
             }
@@ -143,7 +185,7 @@ fun MapPage(modifier: Modifier = Modifier, localPermission: Boolean) {
                         .addOnSuccessListener { location ->
                             location?.let {
                                 val userPoint = GeoPoint(it.latitude, it.longitude)
-                                mapViewInstance?.controller?.setCenter(userPoint)
+                                mapViewInstance?.controller?.animateTo(userPoint)
                                 mapViewInstance?.controller?.setZoom(15.0)
                             }
                         }
@@ -154,7 +196,7 @@ fun MapPage(modifier: Modifier = Modifier, localPermission: Boolean) {
                 .padding(8.dp, 4.dp),
             containerColor = Color.White,
             contentColor = Color.Black,
-            shape = RoundedCornerShape(24.dp)
+            shape = CircleShape
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.center_position),
