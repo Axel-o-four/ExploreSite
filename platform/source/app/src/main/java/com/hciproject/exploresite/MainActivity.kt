@@ -13,11 +13,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,23 +26,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import com.hciproject.exploresite.ui.theme.ExploreSiteTheme
 import org.osmdroid.config.Configuration
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Marker
 import android.Manifest
-import android.app.Application
+import android.annotation.SuppressLint
 import android.content.pm.PackageManager
-import android.util.Log
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.shape.AbsoluteRoundedCornerShape
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Surface
 import androidx.core.content.ContextCompat
-import com.google.android.gms.location.LocationServices
 
 class MainActivity : ComponentActivity() {
     private val permissionState =
@@ -82,52 +79,73 @@ class MainActivity : ComponentActivity() {
 }
 
 // @PreviewScreenSizes
+@SuppressLint("MissingPermission")
 @Composable
 fun ExploreSiteApp(localPermission: Boolean) {
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.MAP) }
 
-    NavigationSuiteScaffold(
-       navigationSuiteItems = {
-           AppDestinations.entries.forEach {
-               item(
-                   icon = {
-                       Row(
-                           modifier = Modifier
-                               .padding(4.dp)
-                               .background(
-                                   color = if (it == currentDestination) Color.Black else Color.Transparent,
-                                   shape = AbsoluteRoundedCornerShape(48.dp, 48.dp, 48.dp, 48.dp)
-                               )
-                               .padding(8.dp),
-                           verticalAlignment = Alignment.CenterVertically
-                       ) {
-                           Icon(
-                               painter = painterResource(it.iconRes),
-                               contentDescription = it.label,
-                               tint = if (it == currentDestination) Color.White else Color.Black,
-                               modifier = Modifier.size(24.dp)
-                           )
-                           Spacer(modifier = Modifier.width(4.dp))
-                           Text(
-                               it.label,
-                               color = if (it == currentDestination) Color.White else Color.Black
-                           )
-                       }
-                   },
-                   label = { },
-                   selected = it == currentDestination,
-                   onClick = { currentDestination = it }
-               )
-           }
-       },
-        containerColor = Color.Black
-    ) {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            when (currentDestination) {
-                AppDestinations.MAP -> MapPage(modifier = Modifier.padding(innerPadding), localPermission = localPermission)
-                AppDestinations.EXPLORE -> ExplorePage(modifier = Modifier.padding(innerPadding))
-                AppDestinations.PROFILE -> ProfilePage(modifier = Modifier.padding(innerPadding))
+    Scaffold(
+        modifier = Modifier.fillMaxSize().systemBarsPadding(),
+        containerColor = Color.White,
+        bottomBar = {
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(8.dp, 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    color = Color.White,
+                    shape = AbsoluteRoundedCornerShape(48.dp, 48.dp, 48.dp, 48.dp),
+                    shadowElevation = 8.dp
+                ) {
+                    NavigationBar(
+                        containerColor = Color.Transparent,
+                        modifier = Modifier.height(56.dp)
+                    ) {
+                        AppDestinations.entries.forEach { destinations ->
+                            NavigationBarItem(
+                                icon = {
+                                    Row(
+                                        modifier = Modifier
+                                            .padding(4.dp)
+                                            .background(
+                                                color = if (destinations == currentDestination) Color.Black else Color.Transparent,
+                                                shape = AbsoluteRoundedCornerShape(
+                                                    48.dp,
+                                                    48.dp,
+                                                    48.dp,
+                                                    48.dp
+                                                )
+                                            )
+                                            .padding(6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(destinations.iconRes),
+                                            contentDescription = destinations.label,
+                                            tint = if (destinations == currentDestination) Color.White else Color.Black,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            destinations.label,
+                                            color = if (destinations == currentDestination) Color.White else Color.Black
+                                        )
+                                    }
+                                },
+                                selected = destinations == currentDestination,
+                                onClick = { currentDestination = destinations },
+                                colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent)
+                            )
+                        }
+                    }
+                }
             }
+        }
+    ) { innerPadding ->
+        when (currentDestination) {
+            AppDestinations.MAP -> MapPage(modifier = Modifier.padding(innerPadding), localPermission = localPermission)
+            AppDestinations.EXPLORE -> ExplorePage(modifier = Modifier.padding(innerPadding))
+            AppDestinations.PROFILE -> ProfilePage(modifier = Modifier.padding(innerPadding))
         }
     }
 }
@@ -141,7 +159,7 @@ enum class AppDestinations(
     PROFILE("Profilo", R.drawable.profile);
 }
 
-@Composable
+/*@Composable
 fun MapPage(modifier: Modifier = Modifier, localPermission: Boolean) {
 
     AndroidView(
@@ -178,7 +196,7 @@ fun MapPage(modifier: Modifier = Modifier, localPermission: Boolean) {
             }
         }
     )
-}
+}*/
 
 @Composable
 fun ExplorePage(modifier: Modifier = Modifier) {
