@@ -51,7 +51,8 @@ fun MapPage(
     hasInitiallyCentered: Boolean,
     onMapStateChanged: (Double, Double, Double, Boolean) -> Unit,
     onPoiClick: (PointOfInterest) -> Unit,
-    uiVisible: Boolean = true // Added to control UI visibility
+    uiVisible: Boolean = true,
+    contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     val context = LocalContext.current
     var searchText by remember { mutableStateOf("") }
@@ -120,7 +121,7 @@ fun MapPage(
                         val poiMarker = Marker(this)
                         poiMarker.position = GeoPoint(poi.latitude, poi.longitude)
                         poiMarker.title = poi.name
-                        poiMarker.snippet = poi.description
+                        poiMarker.snippet = poi.address
                         poiMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                         
                         poiMarker.icon = when(poi.type) {
@@ -189,87 +190,138 @@ fun MapPage(
         )
 
         if (uiVisible) {
-            FloatingActionButton(
-                onClick = {
-                    if (localPermission) {
-                        val fusedClient = LocationServices.getFusedLocationProviderClient(context)
-                        fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
-                            .addOnSuccessListener { location ->
-                                location?.let {
-                                    val userPoint = GeoPoint(it.latitude, it.longitude)
-                                    mapViewInstance?.controller?.animateTo(userPoint)
-                                    mapViewInstance?.controller?.setZoom(15.0)
+            Box(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
+                
+                // Centering Button (Bottom Start)
+                FloatingActionButton(
+                    onClick = {
+                        if (localPermission) {
+                            val fusedClient = LocationServices.getFusedLocationProviderClient(context)
+                            fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                                .addOnSuccessListener { location ->
+                                    location?.let {
+                                        val userPoint = GeoPoint(it.latitude, it.longitude)
+                                        mapViewInstance?.controller?.animateTo(userPoint)
+                                        mapViewInstance?.controller?.setZoom(15.0)
+                                    }
                                 }
-                            }
-                    }
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(8.dp, 4.dp),
-                containerColor = Color.White,
-                contentColor = Color.Black,
-                shape = CircleShape
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.center_position),
-                    contentDescription = "Centra sulla mia posizione",
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(4.dp)
-                    .align(Alignment.TopCenter)
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(48.dp),
-                    color = Color.White,
-                    shadowElevation = 8.dp
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(16.dp),
+                    containerColor = Color.White,
+                    contentColor = Color.Black,
+                    shape = CircleShape
                 ) {
-                    TextField(
-                        value = searchText,
-                        onValueChange = { searchText = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Cerca un luogo...") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        singleLine = true,
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            disabledContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                        ),
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(
-                            onSearch = { performSearch() }
-                        )
+                    Icon(
+                        painter = painterResource(id = R.drawable.center_position),
+                        contentDescription = "Centra sulla mia posizione",
+                        modifier = Modifier.size(24.dp)
                     )
                 }
 
-                if (suggestions.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Surface(
+                // Top Search UI with Pill Bar and Two Circular Buttons to the right
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .align(Alignment.TopCenter)
+                ) {
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                        color = Color.White,
-                        shadowElevation = 8.dp
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
-                            items(suggestions) { address ->
-                                val addressLine = address.getAddressLine(0) ?: ""
-                                Text(
-                                    text = addressLine,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { onSuggestionClick(address) }
-                                        .padding(16.dp),
-                                    style = MaterialTheme.typography.bodyMedium
+                        // Search Pill
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(48.dp),
+                            color = Color.White,
+                            shadowElevation = 8.dp
+                        ) {
+                            TextField(
+                                value = searchText,
+                                onValueChange = { searchText = it },
+                                modifier = Modifier.fillMaxWidth(),
+                                placeholder = { Text("Cerca un luogo...") },
+                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                                singleLine = true,
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    disabledContainerColor = Color.Transparent,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                ),
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                                keyboardActions = KeyboardActions(
+                                    onSearch = { performSearch() }
                                 )
-                                HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // Filter Circle Button
+                        FloatingActionButton(
+                            onClick = { /* Filter action */ },
+                            containerColor = Color.White,
+                            contentColor = Color.Black,
+                            shape = CircleShape,
+                            modifier = Modifier.size(56.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.filter),
+                                contentDescription = "Filtra",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // Translation Circle Button
+                        FloatingActionButton(
+                            onClick = { /* Translation action */ },
+                            containerColor = Color.White,
+                            contentColor = Color.Black,
+                            shape = CircleShape,
+                            modifier = Modifier.size(56.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.translation),
+                                contentDescription = "Traduci",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+
+                    if (suggestions.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        // Align suggestions under the search pill
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Surface(
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(24.dp),
+                                color = Color.White,
+                                shadowElevation = 8.dp
+                            ) {
+                                LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
+                                    items(suggestions) { address ->
+                                        val addressLine = address.getAddressLine(0) ?: ""
+                                        Text(
+                                            text = addressLine,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable { onSuggestionClick(address) }
+                                                .padding(16.dp),
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                        HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
+                                    }
+                                }
                             }
+                            // Empty space matching the two FABs and spacers on the right
+                            Spacer(modifier = Modifier.width(128.dp)) 
                         }
                     }
                 }

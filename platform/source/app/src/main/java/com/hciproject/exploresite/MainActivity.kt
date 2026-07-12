@@ -175,7 +175,8 @@ fun ExploreSiteApp(localPermission: Boolean) {
                     hasInitiallyCentered = centered
                 },
                 onPoiClick = { poi -> selectedPoi = poi },
-                uiVisible = (selectedPoi == null && currentDestination == AppDestinations.MAP)
+                uiVisible = (selectedPoi == null && currentDestination == AppDestinations.MAP),
+                contentPadding = innerPadding // Pass padding to MapPage
             )
 
             // Overlays for other screens
