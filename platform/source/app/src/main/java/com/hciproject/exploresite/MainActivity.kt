@@ -18,7 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.AbsoluteRoundedCornerShape
 import androidx.compose.material3.Icon
@@ -100,12 +100,15 @@ fun ExploreSiteApp(localPermission: Boolean) {
     }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize().systemBarsPadding(),
+        modifier = Modifier.fillMaxSize(),
         containerColor = Color.White,
         bottomBar = {
             if (selectedPoi == null) {
                 Box(
-                    modifier = Modifier.fillMaxWidth().padding(8.dp, 4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(8.dp, 4.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Surface(
@@ -176,7 +179,7 @@ fun ExploreSiteApp(localPermission: Boolean) {
                 },
                 onPoiClick = { poi -> selectedPoi = poi },
                 uiVisible = (selectedPoi == null && currentDestination == AppDestinations.MAP),
-                contentPadding = innerPadding // Pass padding to MapPage
+                contentPadding = innerPadding
             )
 
             // Overlays for other screens
