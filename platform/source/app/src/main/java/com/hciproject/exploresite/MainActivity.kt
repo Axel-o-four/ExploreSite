@@ -191,6 +191,8 @@ fun ExploreSiteApp(localPermission: Boolean) {
                 },
                 onPoiClick = { poi -> selectedPoi = poi },
                 uiVisible = (selectedPoi == null && currentDestination == AppDestinations.MAP),
+                currentLanguage = currentLanguage,
+                onLanguageChange = { currentLanguage = it },
                 contentPadding = innerPadding
             )
 
