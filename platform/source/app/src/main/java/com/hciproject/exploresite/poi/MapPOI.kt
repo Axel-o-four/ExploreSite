@@ -8,28 +8,28 @@ data class PointOfInterest(
     val name: String,
     val location: LinkAnnotation,
     val image: Int,
-    val address: String, //Indirizzo del POI com via/viale/piazza, cap, città e provincia in caso la città non è una provincia, es una cosa a napoli scrivi Napoli una cosa a pozzuoli scrivi Pozzuoli (NA)
-    val basePrice: Double, //Prezzo del biglietto base, quello standard che si vedeva affianco al nome del POI nel prototipo
-    val detailedPrice: String, //Prezzi dettagliati di tutte le opzioni, in pratica quello che visualizzavi premendo sul prezzo nel prototipo
-    val baseOpeningTime: String, //Orario base di apertura, quello che visualizzavi sotto il titolo nel prototipo
-    val detailedOpeningTime: String, //Orario dettagliato, quello che visualizzavi quando premevi l'orario base
-    val baseJourneyDuration: String, //Orario di percorrenza da mettere nell'ovale
-    val detailedJourneyDuration: String, //Orario di percorrenza che leggi quando lo premevi
-    val baseAccessibility: POIAccessibility, //Tipologia di accessibilità che vedevi nell'ovale, definiti come boolean, vedi il data class POIAccessibility
-    val detailedAccessibility: String, //Quello che vedevi scritto qunado premevi sull'ovale dell'accessibilità
-    val ticketShop: LinkAnnotation?, //Link alla biglietteria ufficiale
-    val suggestionNumber: Int, //Numero di "Suggerisce" che vedavamo anche nel prototipo, considera un numero inventato però abbastanza plausibile per il luogo che è
-    val description: String, //Descrizione, testo della prima delle 3 card
-    val descriptionImage: Int, //Immagine della prima delle 3 card, comportati come per l'immagine del POI che ti ho detto prima
-    val curiosity1: String,//Titolo della seconda card, tipo "Un po di storia...", "Lo sapevi che..." cose così.
-    val curiosity1Title: String,//Contenuto della seconda card
-    val curiosity1Image: Int,//Immagine della seconda delle 3 card
-    val curiosity2: String,//Contentuo della terza card
-    val curiosity2Title: String,//Titolo della terza card
-    val curiosity2Image: Int,//Immagine della terza delle 3 card
-    val latitude: Double,//Latitudine GPS del punto su maps, la si copia premendo tasto destro sul punto
-    val longitude: Double,//Longitudine GPS del punto su maps, la si copia premendo tasto destro sul punto
-    val type: POICategory,//Categoria del punto di interesse
+    val address: String,
+    val basePrice: Double,
+    val detailedPrice: String,
+    val baseOpeningTime: String,
+    val detailedOpeningTime: String,
+    val baseJourneyDuration: String,
+    val detailedJourneyDuration: String,
+    val baseAccessibility: POIAccessibility,
+    val detailedAccessibility: String,
+    val ticketShop: LinkAnnotation?,
+    val suggestionNumber: Int,
+    val description: String,
+    val descriptionImage: Int,
+    val curiosity1: String,
+    val curiosity1Title: String,
+    val curiosity1Image: Int,
+    val curiosity2Title: String,
+    val curiosity2: String,
+    val curiosity2Image: Int,
+    val latitude: Double,
+    val longitude: Double,
+    val type: POICategory,
 )
 
 enum class POICategory{

@@ -35,13 +35,16 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hciproject.exploresite.R
+import com.hciproject.exploresite.TranslationManager
 import kotlinx.coroutines.launch
 import java.util.Locale
 
 @Composable
 fun POIDetailsPage(
     poi: PointOfInterest,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    currentLanguage: String,
+    onLanguageChange: (String) -> Unit
 ) {
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
@@ -54,10 +57,39 @@ fun POIDetailsPage(
     var showJourneyDialog by remember { mutableStateOf(false) }
     var showAccessibilityDialog by remember { mutableStateOf(false) }
     var showNoTicketDialog by remember { mutableStateOf(false) }
+    var isTranslationMenuVisible by remember { mutableStateOf(false) }
 
     var currentCardIndex by remember { mutableStateOf(0) }
-    var isNextAnimation by remember { mutableStateOf(true) }
+    var slideDirection by remember { mutableStateOf(1) } // 1 for right, -1 for left
 
+    // Translation states
+    var tName by remember { mutableStateOf(poi.name) }
+    var tAddress by remember { mutableStateOf(poi.address) }
+    var tDetailedPrice by remember { mutableStateOf(poi.detailedPrice) }
+    var tBaseOpeningTime by remember { mutableStateOf(poi.baseOpeningTime) }
+    var tDetailedOpeningTime by remember { mutableStateOf(poi.detailedOpeningTime) }
+    var tBaseJourneyDuration by remember { mutableStateOf(poi.baseJourneyDuration) }
+    var tDetailedJourneyDuration by remember { mutableStateOf(poi.detailedJourneyDuration) }
+    var tDetailedAccessibility by remember { mutableStateOf(poi.detailedAccessibility) }
+    var tDescription by remember { mutableStateOf(poi.description) }
+    var tCuriosity1Title by remember { mutableStateOf(poi.curiosity1) }
+    var tCuriosity1Content by remember { mutableStateOf(poi.curiosity1Title) }
+    var tCuriosity2Title by remember { mutableStateOf(poi.curiosity2Title) }
+    var tCuriosity2Content by remember { mutableStateOf(poi.curiosity2) }
+    
+    // UI Translation states
+    var tPriceInfoTitle by remember { mutableStateOf("Informazione di prezzo") }
+    var tOpeningTitle by remember { mutableStateOf("Informazione orari di apertura") }
+    var tJourneyTitle by remember { mutableStateOf("Informazione orari di percorrenza") }
+    var tAccessTitle by remember { mutableStateOf("Informazione accessibilità") }
+    var tTicketInfoTitle by remember { mutableStateOf("Informazioni biglietteria") }
+    var tUnderstandBtn by remember { mutableStateOf("Ho capito") }
+    var tTicketsLabel by remember { mutableStateOf("Biglietteria e prenotazioni") }
+    var tRecommendLabel by remember { mutableStateOf("Consiglia questo posto") }
+    var tNoTicketText by remember { mutableStateOf("") }
+    var tDescLabel by remember { mutableStateOf("Descrizione") }
+
+    // Recommendation State
     var isRecommended by remember(poi.name) { 
         mutableStateOf(sharedPrefs.getBoolean(poi.name, false)) 
     }
@@ -70,23 +102,75 @@ fun POIDetailsPage(
         sharedPrefs.edit().putBoolean(poi.name, isRecommended).apply()
     }
 
+    // Translation logic
+    LaunchedEffect(poi, currentLanguage) {
+        if (currentLanguage == "it") {
+            tName = poi.name
+            tAddress = poi.address
+            tDetailedPrice = poi.detailedPrice
+            tBaseOpeningTime = poi.baseOpeningTime
+            tDetailedOpeningTime = poi.detailedOpeningTime
+            tBaseJourneyDuration = poi.baseJourneyDuration
+            tDetailedJourneyDuration = poi.detailedJourneyDuration
+            tDetailedAccessibility = poi.detailedAccessibility
+            tDescription = poi.description
+            tCuriosity1Title = poi.curiosity1
+            tCuriosity1Content = poi.curiosity1Title
+            tCuriosity2Title = poi.curiosity2Title
+            tCuriosity2Content = poi.curiosity2
+            
+            tPriceInfoTitle = "Informazione di prezzo"
+            tOpeningTitle = "Informazione orari di apertura"
+            tJourneyTitle = "Informazione orari di percorrenza"
+            tAccessTitle = "Informazione accessibilità"
+            tTicketInfoTitle = "Informazioni biglietteria"
+            tUnderstandBtn = "Ho capito"
+            tTicketsLabel = "Biglietteria e prenotazioni"
+            tRecommendLabel = "Consiglia questo posto"
+            tNoTicketText = "${poi.name} non dispone di una biglietteria ufficiale online o di un sistema di prenotazione online."
+            tDescLabel = "Descrizione"
+        } else {
+            tName = TranslationManager.translate(poi.name, currentLanguage)
+            tAddress = TranslationManager.translate(poi.address, currentLanguage)
+            tDetailedPrice = TranslationManager.translate(poi.detailedPrice, currentLanguage)
+            tBaseOpeningTime = TranslationManager.translate(poi.baseOpeningTime, currentLanguage)
+            tDetailedOpeningTime = TranslationManager.translate(poi.detailedOpeningTime, currentLanguage)
+            tBaseJourneyDuration = TranslationManager.translate(poi.baseJourneyDuration, currentLanguage)
+            tDetailedJourneyDuration = TranslationManager.translate(poi.detailedJourneyDuration, currentLanguage)
+            tDetailedAccessibility = TranslationManager.translate(poi.detailedAccessibility, currentLanguage)
+            tDescription = TranslationManager.translate(poi.description, currentLanguage)
+            tCuriosity1Title = TranslationManager.translate(poi.curiosity1, currentLanguage)
+            tCuriosity1Content = TranslationManager.translate(poi.curiosity1Title, currentLanguage)
+            tCuriosity2Title = TranslationManager.translate(poi.curiosity2Title, currentLanguage)
+            tCuriosity2Content = TranslationManager.translate(poi.curiosity2, currentLanguage)
+            
+            tPriceInfoTitle = TranslationManager.translate("Informazione di prezzo", currentLanguage)
+            tOpeningTitle = TranslationManager.translate("Informazione orari di apertura", currentLanguage)
+            tJourneyTitle = TranslationManager.translate("Informazione orari di percorrenza", currentLanguage)
+            tAccessTitle = TranslationManager.translate("Informazione accessibilità", currentLanguage)
+            tTicketInfoTitle = TranslationManager.translate("Informazioni biglietteria", currentLanguage)
+            tUnderstandBtn = TranslationManager.translate("Ho capito", currentLanguage)
+            tTicketsLabel = TranslationManager.translate("Biglietteria e prenotazioni", currentLanguage)
+            tRecommendLabel = TranslationManager.translate("Consiglia questo posto", currentLanguage)
+            tNoTicketText = TranslationManager.translate("${poi.name} non dispone di una biglietteria ufficiale online o di un sistema di prenotazione online.", currentLanguage)
+            tDescLabel = TranslationManager.translate("Descrizione", currentLanguage)
+        }
+    }
+
     if (showPriceDialog) {
-        InfoDialog(title = "Informazione di prezzo", text = poi.detailedPrice) { showPriceDialog = false }
+        InfoDialog(title = tPriceInfoTitle, text = tDetailedPrice, btnText = tUnderstandBtn) { showPriceDialog = false }
     }
     if (showOpeningDialog) {
-        InfoDialog(title = "Informazione orari di apertura", text = poi.detailedOpeningTime) { showOpeningDialog = false }
+        InfoDialog(title = tOpeningTitle, text = tDetailedOpeningTime, btnText = tUnderstandBtn) { showOpeningDialog = false }
     }
     if (showJourneyDialog) {
-        InfoDialog(title = "Informazione orari di percorrenza", text = poi.detailedJourneyDuration) { showJourneyDialog = false }
+        InfoDialog(title = tJourneyTitle, text = tDetailedJourneyDuration, btnText = tUnderstandBtn) { showJourneyDialog = false }
     }
     if (showAccessibilityDialog) {
-        InfoDialog(title = "Informazione accessibilità", text = poi.detailedAccessibility) { showAccessibilityDialog = false }
+        InfoDialog(title = tAccessTitle, text = tDetailedAccessibility, btnText = tUnderstandBtn) { showAccessibilityDialog = false }
     }
     if (showNoTicketDialog) {
-        InfoDialog(
-            title = "Informazioni biglietteria",
-            text = "${poi.name} non dispone di una biglietteria ufficiale online o di un sistema di prenotazione online."
-        ) { showNoTicketDialog = false }
+        InfoDialog(title = tTicketInfoTitle, text = tNoTicketText, btnText = tUnderstandBtn) { showNoTicketDialog = false }
     }
 
     Surface(
@@ -106,7 +190,7 @@ fun POIDetailsPage(
             ) {
                 Image(
                     painter = painterResource(id = poi.image),
-                    contentDescription = poi.name,
+                    contentDescription = tName,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
@@ -120,10 +204,12 @@ fun POIDetailsPage(
                             )
                         )
                 )
+                
+                // Back button
                 Surface(
                     onClick = onBack,
                     shape = CircleShape,
-                    color = Color.White.copy(alpha = 0.8f),
+                    color = Color.White,
                     shadowElevation = 8.dp,
                     modifier = Modifier
                         .statusBarsPadding()
@@ -140,6 +226,41 @@ fun POIDetailsPage(
                         )
                     }
                 }
+
+                // Translation button
+                Box(modifier = Modifier.statusBarsPadding().padding(16.dp).align(Alignment.TopEnd)) {
+                    Surface(
+                        onClick = { isTranslationMenuVisible = true },
+                        shape = CircleShape,
+                        color = Color.White,
+                        shadowElevation = 8.dp,
+                        modifier = Modifier.size(44.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.translation),
+                                contentDescription = "Traduci",
+                                modifier = Modifier.size(24.dp),
+                                tint = Color.Black
+                            )
+                        }
+                    }
+                    DropdownMenu(
+                        expanded = isTranslationMenuVisible,
+                        onDismissRequest = { isTranslationMenuVisible = false },
+                        modifier = Modifier.background(Color.White)
+                    ) {
+                        TranslationManager.supportedLanguages.forEach { langCode ->
+                            DropdownMenuItem(
+                                text = { Text(TranslationManager.getLanguageName(langCode)) },
+                                onClick = {
+                                    onLanguageChange(langCode)
+                                    isTranslationMenuVisible = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -153,7 +274,7 @@ fun POIDetailsPage(
                 verticalAlignment = Alignment.Top
             ) {
                 Text(
-                    text = poi.name,
+                    text = tName,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
@@ -194,7 +315,7 @@ fun POIDetailsPage(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = poi.address,
+                    text = tAddress,
                     style = MaterialTheme.typography.bodySmall.copy(textDecoration = TextDecoration.None),
                     color = Color(0xFF424242),
                     fontWeight = FontWeight.Medium,
@@ -211,9 +332,25 @@ fun POIDetailsPage(
                     .padding(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                FeaturePill(R.drawable.opening_times, poi.baseOpeningTime, Modifier.weight(1f)) { showOpeningDialog = true }
-                FeaturePill(R.drawable.journey_duration, poi.baseJourneyDuration, Modifier.weight(1f)) { showJourneyDialog = true }
-                AccessibilityPill(poi.baseAccessibility, Modifier.weight(1f)) { showAccessibilityDialog = true }
+                FeaturePill(
+                    iconId = R.drawable.opening_times,
+                    text = tBaseOpeningTime,
+                    onClick = { showOpeningDialog = true },
+                    modifier = Modifier.weight(1f)
+                )
+                
+                FeaturePill(
+                    iconId = R.drawable.journey_duration,
+                    text = tBaseJourneyDuration,
+                    onClick = { showJourneyDialog = true },
+                    modifier = Modifier.weight(1f)
+                )
+
+                AccessibilityPill(
+                    accessibility = poi.baseAccessibility,
+                    onClick = { showAccessibilityDialog = true },
+                    modifier = Modifier.weight(1f)
+                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -228,7 +365,7 @@ fun POIDetailsPage(
                 // Ticket Shop Pill
                 FeaturePill(
                     iconId = R.drawable.cart,
-                    text = "Biglietteria e prenotazioni",
+                    text = tTicketsLabel,
                     onClick = {
                         val shop = poi.ticketShop
                         if (shop is LinkAnnotation.Url && shop.url.isNotBlank()) {
@@ -270,7 +407,7 @@ fun POIDetailsPage(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Consiglia questo posto ($displaySuggestionCount)",
+                            text = (if(currentLanguage == "it") "Consiglia" else "Recommend") + " ($displaySuggestionCount)",
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold,
                             color = recommendationColor,
@@ -283,7 +420,7 @@ fun POIDetailsPage(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 6. Sliding Info Card Carousel (Continuous)
+            // 6. Sliding Info Card Carousel
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -292,7 +429,7 @@ fun POIDetailsPage(
                 AnimatedContent(
                     targetState = currentCardIndex,
                     transitionSpec = {
-                        if (isNextAnimation) {
+                        if (slideDirection > 0) {
                             (slideInHorizontally { width -> width } + fadeIn()).togetherWith(slideOutHorizontally { width -> -width } + fadeOut())
                         } else {
                             (slideInHorizontally { width -> -width } + fadeIn()).togetherWith(slideOutHorizontally { width -> width } + fadeOut())
@@ -302,43 +439,25 @@ fun POIDetailsPage(
                 ) { index ->
                     when (index) {
                         0 -> InfoCarouselCard(
-                            title = "Descrizione",
-                            content = poi.description,
+                            title = tDescLabel,
+                            content = tDescription,
                             imageId = poi.descriptionImage,
-                            onPrev = { 
-                                isNextAnimation = false
-                                currentCardIndex = 2 
-                            },
-                            onNext = { 
-                                isNextAnimation = true
-                                currentCardIndex = 1 
-                            }
+                            onPrev = { slideDirection = -1; currentCardIndex = 2 },
+                            onNext = { slideDirection = 1; currentCardIndex = 1 }
                         )
                         1 -> InfoCarouselCard(
-                            title = poi.curiosity1,
-                            content = poi.curiosity1Title,
+                            title = tCuriosity1Title,
+                            content = tCuriosity1Content,
                             imageId = poi.curiosity1Image,
-                            onPrev = { 
-                                isNextAnimation = false
-                                currentCardIndex = 0 
-                            },
-                            onNext = { 
-                                isNextAnimation = true
-                                currentCardIndex = 2 
-                            }
+                            onPrev = { slideDirection = -1; currentCardIndex = 0 },
+                            onNext = { slideDirection = 1; currentCardIndex = 2 }
                         )
                         2 -> InfoCarouselCard(
-                            title = poi.curiosity2,
-                            content = poi.curiosity2Title,
+                            title = tCuriosity2Title,
+                            content = tCuriosity2Content,
                             imageId = poi.curiosity2Image,
-                            onPrev = { 
-                                isNextAnimation = false
-                                currentCardIndex = 1 
-                            },
-                            onNext = { 
-                                isNextAnimation = true
-                                currentCardIndex = 0 
-                            }
+                            onPrev = { slideDirection = -1; currentCardIndex = 1 },
+                            onNext = { slideDirection = 1; currentCardIndex = 0 }
                         )
                     }
                 }
@@ -360,7 +479,7 @@ fun InfoCarouselCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(260.dp),
+            .height(240.dp),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
@@ -371,11 +490,12 @@ fun InfoCarouselCard(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.ExtraBold,
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                maxLines = 1
             )
             
             Row(
-                modifier = Modifier.weight(1f).padding(top = 4.dp, bottom = 4.dp),
+                modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -395,7 +515,7 @@ fun InfoCarouselCard(
                     contentDescription = null,
                     modifier = Modifier
                         .size(100.dp)
-                        .aspectRatio(1f) // Strict 1:1 ratio
+                        .aspectRatio(1f)
                         .clip(CircleShape),
                     contentScale = ContentScale.Crop
                 )
@@ -442,14 +562,15 @@ fun FeaturePill(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            Icon(painterResource(iconId), null, Modifier.size(16.dp))
+            Icon(painterResource(iconId), null, Modifier.size(16.dp), tint = Color.Black)
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center, // Centers multiline text
-                lineHeight = 14.sp
+                textAlign = TextAlign.Center,
+                lineHeight = 14.sp,
+                color = Color.Black
             )
         }
     }
@@ -473,27 +594,18 @@ fun AccessibilityPill(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            Icon(painterResource(R.drawable.information), null, Modifier.size(16.dp))
+            Icon(painterResource(R.drawable.information), null, Modifier.size(16.dp), tint = Color.Black)
             Spacer(modifier = Modifier.width(4.dp))
             Text("|", color = Color.LightGray, fontSize = 12.sp)
             Spacer(modifier = Modifier.width(4.dp))
-            if (accessibility.wheelchair) Icon(painterResource(R.drawable.wheelchair), null, Modifier.size(16.dp).padding(horizontal = 1.dp))
-            if (accessibility.deaf) Icon(painterResource(R.drawable.deaf), null, Modifier.size(16.dp).padding(horizontal = 1.dp))
-            if (accessibility.blind) Icon(painterResource(R.drawable.blind), null, Modifier.size(16.dp).padding(horizontal = 1.dp))
+            if (accessibility.wheelchair) Icon(painterResource(R.drawable.wheelchair), null, Modifier.size(16.dp), tint = Color.Black)
+            if (accessibility.deaf) Icon(painterResource(R.drawable.deaf), null, Modifier.size(16.dp), tint = Color.Black)
+            if (accessibility.blind) Icon(painterResource(R.drawable.blind), null, Modifier.size(16.dp), tint = Color.Black)
         }
     }
 }
 
 @Composable
-fun InfoDialog(title: String, text: String, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title, fontWeight = FontWeight.Bold) },
-        text = { Text(text) },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Ho capito")
-            }
-        }
-    )
+fun InfoDialog(title: String, text: String, btnText: String, onDismiss: () -> Unit) {
+    AlertDialog(onDismissRequest = onDismiss, title = { Text(title, fontWeight = FontWeight.Bold) }, text = { Text(text) }, confirmButton = { TextButton(onClick = onDismiss) { Text(btnText) } })
 }
