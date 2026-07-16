@@ -6,14 +6,12 @@ plugins {
 
 android {
     namespace = "com.hciproject.exploresite"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.hciproject.exploresite"
         minSdk = 21
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -61,4 +59,9 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation("org.osmdroid:osmdroid-android:6.1.20")
     implementation("com.google.android.gms:play-services-location:21.2.0")
+    
+    // ML Kit Translation
+    implementation("com.google.mlkit:translate:17.0.3")
+    // Required for .await() extension on ML Kit Tasks
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
 }
