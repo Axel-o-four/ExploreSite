@@ -65,7 +65,8 @@ fun POIDetailsPage(
     var slideDirection by remember { mutableStateOf(1) } // 1 for right, -1 for left
 
     // Translation states
-    val tName = poi.name // POI name is never translated
+    // Optimization: POI name is never translated
+    val tName = poi.name 
     var tAddress by remember { mutableStateOf(poi.address) }
     var tDetailedPrice by remember { mutableStateOf(poi.detailedPrice) }
     var tBaseOpeningTime by remember { mutableStateOf(poi.baseOpeningTime) }
@@ -87,7 +88,6 @@ fun POIDetailsPage(
     var tTicketInfoTitle by remember { mutableStateOf("Informazioni biglietteria") }
     var tUnderstandBtn by remember { mutableStateOf("Ho capito") }
     var tTicketsLabel by remember { mutableStateOf("Biglietteria e prenotazioni") }
-    var tRecommendLabel by remember { mutableStateOf("Consiglia questo posto") }
     var tNoTicketText by remember { mutableStateOf("") }
     var tDescLabel by remember { mutableStateOf("Descrizione") }
 
@@ -104,7 +104,7 @@ fun POIDetailsPage(
         sharedPrefs.edit().putBoolean(poi.name, isRecommended).apply()
     }
 
-    // Translation logic
+    // Translation logic - Optimized with caching in TranslationManager
     LaunchedEffect(poi, currentLanguage) {
         if (currentLanguage == "it") {
             tAddress = poi.address
@@ -127,7 +127,6 @@ fun POIDetailsPage(
             tTicketInfoTitle = "Informazioni biglietteria"
             tUnderstandBtn = "Ho capito"
             tTicketsLabel = "Biglietteria e prenotazioni"
-            tRecommendLabel = "Consiglia questo posto"
             tNoTicketText = "${poi.name} non dispone di una biglietteria ufficiale online o di un sistema di prenotazione online."
             tDescLabel = "Descrizione"
         } else {
@@ -151,7 +150,6 @@ fun POIDetailsPage(
             tTicketInfoTitle = TranslationManager.translate("Informazioni biglietteria", currentLanguage)
             tUnderstandBtn = TranslationManager.translate("Ho capito", currentLanguage)
             tTicketsLabel = TranslationManager.translate("Biglietteria e prenotazioni", currentLanguage)
-            tRecommendLabel = TranslationManager.translate("Consiglia questo posto", currentLanguage)
             tNoTicketText = TranslationManager.translate("${poi.name} non dispone di una biglietteria ufficiale online o di un sistema di prenotazione online.", currentLanguage)
             tDescLabel = TranslationManager.translate("Descrizione", currentLanguage)
         }

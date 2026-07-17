@@ -1,5 +1,6 @@
 package com.hciproject.exploresite
 
+import android.graphics.drawable.Drawable
 import android.location.Address
 import android.location.Geocoder
 import androidx.compose.foundation.background
@@ -23,6 +24,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.hciproject.exploresite.poi.CulturalPOI
@@ -63,6 +65,18 @@ fun MapPage(
     var mapViewInstance by remember { mutableStateOf<MapView?>(null) }
     val scope = rememberCoroutineScope()
 
+    // Optimization: Cache drawables to avoid heavy resource loading in loops
+    val poiIcons = remember(context) {
+        mapOf(
+            POICategory.CULINARY to ContextCompat.getDrawable(context, R.drawable.culinary_position),
+            POICategory.ARCHEOLOGICAL to ContextCompat.getDrawable(context, R.drawable.archeological_position),
+            POICategory.MUSEUM to ContextCompat.getDrawable(context, R.drawable.museum_position),
+            POICategory.RELIGIOUS to ContextCompat.getDrawable(context, R.drawable.religious_position),
+            POICategory.ARCHITECTURE to ContextCompat.getDrawable(context, R.drawable.architecture_position)
+        )
+    }
+    val userIcon = remember(context) { ContextCompat.getDrawable(context, R.drawable.user_position) }
+
     // UI Translation States
     var tSearchPlaceholder by remember { mutableStateOf("Cerca un luogo...") }
     var isTranslationMenuVisible by remember { mutableStateOf(false) }
@@ -80,9 +94,9 @@ fun MapPage(
                             else TranslationManager.translate("Cerca un luogo...", currentLanguage)
     }
 
-    // Initial Centering Logic and tracking user location
-    LaunchedEffect(localPermission, hasInitiallyCentered) {
-        if (localPermission) {
+    // Initial Centering and tracking user location
+    LaunchedEffect(localPermission, hasInitiallyCentered, mapViewInstance) {
+        if (localPermission && !hasInitiallyCentered) {
             val fusedClient = LocationServices.getFusedLocationProviderClient(context)
             fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
                 .addOnSuccessListener { location ->
@@ -98,46 +112,41 @@ fun MapPage(
         }
     }
 
-    // Overlay Management Logic
-    LaunchedEffect(selectedCategories, localPermission, mapViewInstance, hasInitiallyCentered) {
-        mapViewInstance?.let { mapView ->
-            mapView.overlays.clear()
-            CulturalPOI.filter { it.type in selectedCategories }.forEach { poi ->
-                val poiMarker = Marker(mapView)
-                poiMarker.position = GeoPoint(poi.latitude, poi.longitude)
-                poiMarker.title = poi.name
-                poiMarker.snippet = poi.address
-                poiMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                poiMarker.icon = when(poi.type) {
-                    POICategory.CULINARY -> context.resources.getDrawable(R.drawable.culinary_position, null)
-                    POICategory.ARCHEOLOGICAL -> context.resources.getDrawable(R.drawable.archeological_position, null)
-                    POICategory.MUSEUM -> context.resources.getDrawable(R.drawable.museum_position, null)
-                    POICategory.RELIGIOUS -> context.resources.getDrawable(R.drawable.religious_position, null)
-                    POICategory.ARCHITECTURE -> context.resources.getDrawable(R.drawable.architecture_position, null)
-                }
-                poiMarker.setOnMarkerClickListener { _, _ -> onPoiClick(poi); true }
-                mapView.overlays.add(poiMarker)
-            }
-            if (localPermission) {
-                val fusedClient = LocationServices.getFusedLocationProviderClient(context)
-                fusedClient.lastLocation.addOnSuccessListener { location ->
-                    location?.let {
-                        val userMarker = Marker(mapView)
-                        userMarker.position = GeoPoint(it.latitude, it.longitude)
-                        userMarker.title = "Tu sei qui"
-                        userMarker.icon = context.resources.getDrawable(R.drawable.user_position, null)
-                        mapView.overlays.add(userMarker)
-                        mapView.invalidate()
-                    }
-                }
-            }
-            mapView.invalidate()
+    // Overlay Management Logic - Optimized marker creation
+    LaunchedEffect(selectedCategories, localPermission, mapViewInstance) {
+        val mapView = mapViewInstance ?: return@LaunchedEffect
+        mapView.overlays.clear()
+        
+        CulturalPOI.filter { it.type in selectedCategories }.forEach { poi ->
+            val poiMarker = Marker(mapView)
+            poiMarker.position = GeoPoint(poi.latitude, poi.longitude)
+            poiMarker.title = poi.name // Name is never translated
+            poiMarker.snippet = poi.address
+            poiMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+            poiMarker.icon = poiIcons[poi.type]
+            poiMarker.setOnMarkerClickListener { _, _ -> onPoiClick(poi); true }
+            mapView.overlays.add(poiMarker)
         }
+        
+        if (localPermission) {
+            val fusedClient = LocationServices.getFusedLocationProviderClient(context)
+            fusedClient.lastLocation.addOnSuccessListener { location ->
+                location?.let {
+                    val userMarker = Marker(mapView)
+                    userMarker.position = GeoPoint(it.latitude, it.longitude)
+                    userMarker.title = "Tu sei qui"
+                    userMarker.icon = userIcon
+                    mapView.overlays.add(userMarker)
+                    mapView.invalidate()
+                }
+            }
+        }
+        mapView.invalidate()
     }
 
     LaunchedEffect(searchText) {
         if (searchText.length > 1) {
-            delay(100)
+            delay(300) // Optimization: Increased debounce delay
             val geocoder = Geocoder(context, Locale.getDefault())
             try {
                 val results = withContext(Dispatchers.IO) { geocoder.getFromLocationName(searchText, 5) }
@@ -169,11 +178,11 @@ fun MapPage(
                     controller.setCenter(GeoPoint(mapLat, mapLon))
                     addMapListener(object : MapListener {
                         override fun onScroll(event: ScrollEvent?): Boolean {
-                            onMapStateChanged(mapCenter.latitude, mapCenter.longitude, zoomLevelDouble, true)
+                            mapCenter?.let { onMapStateChanged(it.latitude, it.longitude, zoomLevelDouble, true) }
                             return true
                         }
                         override fun onZoom(event: ZoomEvent?): Boolean {
-                            onMapStateChanged(mapCenter.latitude, mapCenter.longitude, zoomLevelDouble, true)
+                            mapCenter?.let { onMapStateChanged(it.latitude, it.longitude, zoomLevelDouble, true) }
                             return true
                         }
                     })

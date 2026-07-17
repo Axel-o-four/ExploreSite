@@ -20,21 +20,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hciproject.exploresite.poi.CulturalPOI
 import com.hciproject.exploresite.poi.PointOfInterest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import kotlin.math.*
 
 /**
- * Calculates the distance between two points in kilometers using the Haversine formula.
+ * Calculates a "cheap" squared Euclidean distance for sorting purposes.
+ * This is much faster than the Haversine formula and sufficient for finding nearby POIs.
  */
-private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-    val r = 6371.0 // Radius of the earth in km
-    val dLat = Math.toRadians(lat2 - lat1)
-    val dLon = Math.toRadians(lon2 - lon1)
-    val a = sin(dLat / 2) * sin(dLat / 2) +
-            cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
-            sin(dLon / 2) * sin(dLon / 2)
-    val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    return r * c
+private fun calculateCheapDistanceSq(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+    val dLat = lat2 - lat1
+    val dLon = lon2 - lon1
+    return dLat * dLat + dLon * dLon
 }
 
 @Composable
@@ -42,7 +41,7 @@ fun SuggestionItem(
     poi: PointOfInterest,
     modifier: Modifier = Modifier,
     currentLanguage: String,
-    fontSize: TextUnit = 14.sp,
+    fontSize: TextUnit = 13.sp,
     padding: Dp = 12.dp,
     onClick: () -> Unit
 ) {
@@ -52,7 +51,7 @@ fun SuggestionItem(
             .height(110.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp) // Lower elevation is cheaper to render
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Image(
@@ -67,8 +66,8 @@ fun SuggestionItem(
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
-                            startY = 100f
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f)),
+                            startY = 150f
                         )
                     )
             )
@@ -109,13 +108,16 @@ fun MapPageSuggestionSystem(
 ) {
     if (userLat == null || userLon == null) return
 
-    val nearestPoi = remember(userLat, userLon) {
-        CulturalPOI.minByOrNull { calculateDistance(userLat, userLon, it.latitude, it.longitude) }
+    // Offload distance calculation to background thread
+    val nearestPoi by produceState<PointOfInterest?>(initialValue = null, userLat, userLon) {
+        value = withContext(Dispatchers.Default) {
+            CulturalPOI.minByOrNull { calculateCheapDistanceSq(userLat, userLon, it.latitude, it.longitude) }
+        }
     }
 
     nearestPoi?.let {
         Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-            SuggestionItem(poi = it, currentLanguage = currentLanguage) { onPoiClick(it) }
+            SuggestionItem(poi = it, currentLanguage = currentLanguage, fontSize = 13.sp) { onPoiClick(it) }
         }
     }
 }
@@ -126,11 +128,15 @@ fun POIDetailSuggestionSystem(
     currentLanguage: String,
     onPoiClick: (PointOfInterest) -> Unit
 ) {
-    val suggestions = remember(currentPoi) {
-        CulturalPOI
-            .filter { it.name != currentPoi.name }
-            .sortedBy { calculateDistance(currentPoi.latitude, currentPoi.longitude, it.latitude, it.longitude) }
-            .take(2)
+    // Optimization: Async calculation with a delay to let the initial transition finish
+    val suggestions by produceState<List<PointOfInterest>>(initialValue = emptyList(), currentPoi) {
+        value = withContext(Dispatchers.Default) {
+            delay(300) // Delay to spread out the CPU spike
+            CulturalPOI
+                .filter { it.name != currentPoi.name }
+                .sortedBy { calculateCheapDistanceSq(currentPoi.latitude, currentPoi.longitude, it.latitude, it.longitude) }
+                .take(2)
+        }
     }
 
     if (suggestions.isNotEmpty()) {
@@ -140,10 +146,13 @@ fun POIDetailSuggestionSystem(
                 .padding(horizontal = 24.dp, vertical = 16.dp)
         ) {
             var title by remember(currentLanguage) { mutableStateOf("Ti potrebbe piacere anche…") }
-            
+
             LaunchedEffect(currentLanguage) {
-                title = if (currentLanguage == "it") "Ti potrebbe piacere anche…"
-                else TranslationManager.translate("Ti potrebbe piacere anche…", currentLanguage)
+                if (currentLanguage != "it") {
+                    title = TranslationManager.translate("Ti potrebbe piacere anche…", currentLanguage)
+                } else {
+                    title = "Ti potrebbe piacere anche…"
+                }
             }
 
             Text(
@@ -162,8 +171,8 @@ fun POIDetailSuggestionSystem(
                         poi = poi,
                         modifier = Modifier.weight(1f),
                         currentLanguage = currentLanguage,
-                        fontSize = 11.sp,
-                        padding = 8.dp,
+                        fontSize = 10.sp, // Smaller font for POIDetailsPage suggestions
+                        padding = 8.dp,   // Reduced padding
                         onClick = { onPoiClick(poi) }
                     )
                 }
