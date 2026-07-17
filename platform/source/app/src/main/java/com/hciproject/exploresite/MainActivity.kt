@@ -201,7 +201,8 @@ fun ExploreSiteApp(localPermission: Boolean) {
                     poi = selectedPoi!!,
                     onBack = { selectedPoi = null },
                     currentLanguage = currentLanguage,
-                    onLanguageChange = { currentLanguage = it }
+                    onLanguageChange = { currentLanguage = it },
+                    onPoiClick = { poi -> selectedPoi = poi }
                 )
             } else if (currentDestination == AppDestinations.EXPLORE) {
                 ExplorePage(

@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
@@ -70,19 +71,23 @@ fun MapPage(
     var selectedCategories by rememberSaveable { mutableStateOf(POICategory.entries.toSet()) }
     var isFilterMenuVisible by remember { mutableStateOf(false) }
 
+    // User location for suggestion system
+    var userLocation by remember { mutableStateOf<Pair<Double, Double>?>(null) }
+
     // Translate UI strings
     LaunchedEffect(currentLanguage) {
         tSearchPlaceholder = if (currentLanguage == "it") "Cerca un luogo..." 
                             else TranslationManager.translate("Cerca un luogo...", currentLanguage)
     }
 
-    // Initial Centering Logic
+    // Initial Centering Logic and tracking user location
     LaunchedEffect(localPermission, hasInitiallyCentered) {
-        if (localPermission && !hasInitiallyCentered) {
+        if (localPermission) {
             val fusedClient = LocationServices.getFusedLocationProviderClient(context)
             fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
                 .addOnSuccessListener { location ->
                     location?.let {
+                        userLocation = it.latitude to it.longitude
                         if (!hasInitiallyCentered) {
                             val userPoint = GeoPoint(it.latitude, it.longitude)
                             mapViewInstance?.controller?.setCenter(userPoint)
@@ -204,8 +209,11 @@ fun MapPage(
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Surface(modifier = Modifier.weight(1f), shape = RoundedCornerShape(48.dp), color = Color.White, shadowElevation = 8.dp) {
                             TextField(
-                                value = searchText, onValueChange = { searchText = it }, modifier = Modifier.fillMaxWidth(),
-                                placeholder = { Text(tSearchPlaceholder) },
+                                value = searchText, 
+                                onValueChange = { searchText = it }, 
+                                modifier = Modifier.fillMaxWidth(),
+                                textStyle = LocalTextStyle.current.copy(fontSize = 12.sp),
+                                placeholder = { Text(tSearchPlaceholder, fontSize = 12.sp) },
                                 leadingIcon = { Icon(painter = painterResource(R.drawable.search), contentDescription = null, modifier = Modifier.size(24.dp)) },
                                 singleLine = true,
                                 colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, disabledContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
@@ -238,6 +246,17 @@ fun MapPage(
                             }
                         }
                     }
+
+                    // Map Page Suggestion System
+                    if (searchText.isEmpty() && suggestions.isEmpty()) {
+                        MapPageSuggestionSystem(
+                            userLat = userLocation?.first,
+                            userLon = userLocation?.second,
+                            currentLanguage = currentLanguage,
+                            onPoiClick = onPoiClick
+                        )
+                    }
+
                     if (suggestions.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(modifier = Modifier.fillMaxWidth()) {
