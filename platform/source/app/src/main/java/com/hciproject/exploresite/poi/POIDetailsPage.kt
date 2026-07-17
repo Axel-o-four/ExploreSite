@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.hciproject.exploresite.POIDetailSuggestionSystem
 import com.hciproject.exploresite.R
 import com.hciproject.exploresite.TranslationManager
 import kotlinx.coroutines.launch
@@ -44,7 +45,8 @@ fun POIDetailsPage(
     poi: PointOfInterest,
     onBack: () -> Unit,
     currentLanguage: String,
-    onLanguageChange: (String) -> Unit
+    onLanguageChange: (String) -> Unit,
+    onPoiClick: (PointOfInterest) -> Unit
 ) {
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
@@ -63,7 +65,7 @@ fun POIDetailsPage(
     var slideDirection by remember { mutableStateOf(1) } // 1 for right, -1 for left
 
     // Translation states
-    var tName by remember { mutableStateOf(poi.name) }
+    val tName = poi.name // POI name is never translated
     var tAddress by remember { mutableStateOf(poi.address) }
     var tDetailedPrice by remember { mutableStateOf(poi.detailedPrice) }
     var tBaseOpeningTime by remember { mutableStateOf(poi.baseOpeningTime) }
@@ -95,7 +97,7 @@ fun POIDetailsPage(
     }
     
     val displaySuggestionCount = if (isRecommended) poi.suggestionNumber + 1 else poi.suggestionNumber
-    val recommendationColor by animateColorAsState(if (isRecommended) Color.Red else Color.Black)
+    val recommendationColor by animateColorAsState(if (isRecommended) Color.Red else Color.Black, label = "recommendationColor")
     val recommendationScale = remember { Animatable(1f) }
 
     LaunchedEffect(isRecommended) {
@@ -105,7 +107,6 @@ fun POIDetailsPage(
     // Translation logic
     LaunchedEffect(poi, currentLanguage) {
         if (currentLanguage == "it") {
-            tName = poi.name
             tAddress = poi.address
             tDetailedPrice = poi.detailedPrice
             tBaseOpeningTime = poi.baseOpeningTime
@@ -130,7 +131,6 @@ fun POIDetailsPage(
             tNoTicketText = "${poi.name} non dispone di una biglietteria ufficiale online o di un sistema di prenotazione online."
             tDescLabel = "Descrizione"
         } else {
-            tName = TranslationManager.translate(poi.name, currentLanguage)
             tAddress = TranslationManager.translate(poi.address, currentLanguage)
             tDetailedPrice = TranslationManager.translate(poi.detailedPrice, currentLanguage)
             tBaseOpeningTime = TranslationManager.translate(poi.baseOpeningTime, currentLanguage)
@@ -462,6 +462,15 @@ fun POIDetailsPage(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 7. Suggestion System
+            POIDetailSuggestionSystem(
+                currentPoi = poi,
+                currentLanguage = currentLanguage,
+                onPoiClick = onPoiClick
+            )
 
             Spacer(modifier = Modifier.height(32.dp))
         }
