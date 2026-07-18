@@ -52,8 +52,8 @@ class MainActivity : ComponentActivity() {
     private val permissionState = mutableStateOf(false)
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        permissions -> permissionState.value =  permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-                                                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+            permissions -> permissionState.value =  permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -211,8 +211,7 @@ fun ExploreSiteApp(localPermission: Boolean) {
                 )
             } else if (currentDestination == AppDestinations.PROFILE) {
                 ProfilePage(
-                    modifier = Modifier.padding(innerPadding).background(Color.White),
-                    currentLanguage = currentLanguage
+                    modifier = Modifier.padding(innerPadding).background(Color.White)
                 )
             }
         }
@@ -233,16 +232,5 @@ fun ExplorePage(modifier: Modifier = Modifier, currentLanguage: String) {
     }
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(text = tExplore, style = MaterialTheme.typography.headlineLarge)
-    }
-}
-
-@Composable
-fun ProfilePage(modifier: Modifier = Modifier, currentLanguage: String) {
-    var tProfile by remember { mutableStateOf("Profilo") }
-    LaunchedEffect(currentLanguage) {
-        tProfile = if (currentLanguage == "it") "Profilo" else TranslationManager.translate("Profilo", currentLanguage)
-    }
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = tProfile, style = MaterialTheme.typography.headlineLarge)
     }
 }
