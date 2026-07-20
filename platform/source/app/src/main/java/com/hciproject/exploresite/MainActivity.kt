@@ -43,6 +43,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.hciproject.exploresite.itinerary.Itineraries
+import com.hciproject.exploresite.itinerary.ItineraryDetailsPage
+import com.hciproject.exploresite.itinerary.ItineraryPage
 import com.hciproject.exploresite.poi.POIDetailsPage
 import com.hciproject.exploresite.poi.PointOfInterest
 import com.hciproject.exploresite.ui.theme.ExploreSiteTheme
@@ -87,6 +90,7 @@ class MainActivity : ComponentActivity() {
 fun ExploreSiteApp(localPermission: Boolean) {
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.MAP) }
     var selectedPoi by remember { mutableStateOf<PointOfInterest?>(null) }
+    var selectedItinerary by remember { mutableStateOf<Itineraries?>(null) }
     var currentLanguage by rememberSaveable { mutableStateOf("it") }
 
     // State for translated destination labels
@@ -115,12 +119,18 @@ fun ExploreSiteApp(localPermission: Boolean) {
             selectedPoi = null
         }
     }
+    
+    if (selectedItinerary != null) {
+        BackHandler {
+            selectedItinerary = null
+        }
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = Color.White,
         bottomBar = {
-            if (selectedPoi == null) {
+            if (selectedPoi == null && selectedItinerary == null) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -190,7 +200,7 @@ fun ExploreSiteApp(localPermission: Boolean) {
                     hasInitiallyCentered = centered
                 },
                 onPoiClick = { poi -> selectedPoi = poi },
-                uiVisible = (selectedPoi == null && currentDestination == AppDestinations.MAP),
+                uiVisible = (selectedPoi == null && selectedItinerary == null && currentDestination == AppDestinations.MAP),
                 currentLanguage = currentLanguage,
                 onLanguageChange = { currentLanguage = it },
                 contentPadding = innerPadding
@@ -204,10 +214,20 @@ fun ExploreSiteApp(localPermission: Boolean) {
                     onLanguageChange = { currentLanguage = it },
                     onPoiClick = { poi -> selectedPoi = poi }
                 )
+            } else if (selectedItinerary != null) {
+                ItineraryDetailsPage(
+                    itinerary = selectedItinerary!!,
+                    onBack = { selectedItinerary = null },
+                    currentLanguage = currentLanguage,
+                    onLanguageChange = { currentLanguage = it },
+                    onPoiClick = { poi -> selectedPoi = poi }
+                )
             } else if (currentDestination == AppDestinations.EXPLORE) {
-                ExplorePage(
+                ItineraryPage(
                     modifier = Modifier.padding(innerPadding).background(Color.White),
-                    currentLanguage = currentLanguage
+                    currentLanguage = currentLanguage,
+                    onLanguageChange = { currentLanguage = it },
+                    onItineraryClick = { itinerary -> selectedItinerary = itinerary }
                 )
             } else if (currentDestination == AppDestinations.PROFILE) {
                 ProfilePage(
@@ -223,17 +243,6 @@ enum class AppDestinations(val label: String, val iconRes: Int) {
     EXPLORE("Esplora", R.drawable.explore),
     MAP("Mappa", R.drawable.map),
     PROFILE("Profilo", R.drawable.profile);
-}
-
-@Composable
-fun ExplorePage(modifier: Modifier = Modifier, currentLanguage: String) {
-    var tExplore by remember { mutableStateOf("Esplora") }
-    LaunchedEffect(currentLanguage) {
-        tExplore = if (currentLanguage == "it") "Esplora" else TranslationManager.translate("Esplora", currentLanguage)
-    }
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = tExplore, style = MaterialTheme.typography.headlineLarge)
-    }
 }
 
 @Composable
