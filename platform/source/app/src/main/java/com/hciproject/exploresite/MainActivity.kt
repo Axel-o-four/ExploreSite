@@ -43,6 +43,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.hciproject.exploresite.itinerary.Itineraries
+import com.hciproject.exploresite.itinerary.ItineraryDetailsPage
+import com.hciproject.exploresite.itinerary.ItineraryPage
 import com.hciproject.exploresite.poi.POIDetailsPage
 import com.hciproject.exploresite.poi.PointOfInterest
 import com.hciproject.exploresite.profile.ProfilePage
@@ -104,6 +107,7 @@ fun ExploreSiteApp(localPermission: Boolean) {
     val context = LocalContext.current
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.MAP) }
     var selectedPoi by remember { mutableStateOf<PointOfInterest?>(null) }
+    var selectedItinerary by remember { mutableStateOf<Itineraries?>(null) }
     var currentLanguage by rememberSaveable { mutableStateOf("it") }
 
     // Navigation state within Profile
@@ -183,6 +187,12 @@ fun ExploreSiteApp(localPermission: Boolean) {
     } else if (showSettings) {
         BackHandler {
             showSettings = false
+        }
+    }
+    
+    if (selectedItinerary != null) {
+        BackHandler {
+            selectedItinerary = null
         }
     }
 
@@ -274,7 +284,7 @@ fun ExploreSiteApp(localPermission: Boolean) {
                     hasInitiallyCentered = centered
                 },
                 onPoiClick = { poi -> selectedPoi = poi },
-                uiVisible = (selectedPoi == null && currentDestination == AppDestinations.MAP),
+                uiVisible = (selectedPoi == null && selectedItinerary == null && currentDestination == AppDestinations.MAP),
                 currentLanguage = currentLanguage,
                 onLanguageChange = { currentLanguage = it },
                 contentPadding = innerPadding
@@ -288,10 +298,20 @@ fun ExploreSiteApp(localPermission: Boolean) {
                     onLanguageChange = { currentLanguage = it },
                     onPoiClick = { poi -> selectedPoi = poi }
                 )
+            } else if (selectedItinerary != null) {
+                ItineraryDetailsPage(
+                    itinerary = selectedItinerary!!,
+                    onBack = { selectedItinerary = null },
+                    currentLanguage = currentLanguage,
+                    onLanguageChange = { currentLanguage = it },
+                    onPoiClick = { poi -> selectedPoi = poi }
+                )
             } else if (currentDestination == AppDestinations.EXPLORE) {
-                ExplorePage(
+                ItineraryPage(
                     modifier = Modifier.padding(innerPadding).background(Color.White),
-                    currentLanguage = currentLanguage
+                    currentLanguage = currentLanguage,
+                    onLanguageChange = { currentLanguage = it },
+                    onItineraryClick = { itinerary -> selectedItinerary = itinerary }
                 )
             } else if (currentDestination == AppDestinations.PROFILE) {
                 if (showMedals) {
@@ -405,5 +425,12 @@ fun ExplorePage(modifier: Modifier = Modifier, currentLanguage: String) {
     }
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(text = tExplore, style = MaterialTheme.typography.headlineLarge)
+fun ProfilePage(modifier: Modifier = Modifier, currentLanguage: String) {
+    var tProfile by remember { mutableStateOf("Profilo") }
+    LaunchedEffect(currentLanguage) {
+        tProfile = if (currentLanguage == "it") "Profilo" else TranslationManager.translate("Profilo", currentLanguage)
+    }
+    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text = tProfile, style = MaterialTheme.typography.headlineLarge)
     }
 }
