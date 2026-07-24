@@ -1,4 +1,4 @@
-package com.hciproject.exploresite
+package com.hciproject.exploresite.profile
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -18,14 +18,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.hciproject.exploresite.R
+import com.hciproject.exploresite.TranslationManager
 import com.hciproject.exploresite.poi.CulturalPOI
 import com.hciproject.exploresite.poi.PointOfInterest
 import com.hciproject.exploresite.ui.theme.ExploreSiteTheme
@@ -33,13 +34,23 @@ import com.hciproject.exploresite.ui.theme.GrayLight
 
 @Composable
 fun ProfilePage(
+    onSavedItinerariesClick: () -> Unit,
+    onUserProfileClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    onLoginClick: () -> Unit,
+    onGamificationClick: () -> Unit,
     modifier: Modifier = Modifier,
+    paddingValues: PaddingValues = PaddingValues(0.dp),
     currentLanguage: String = "it",
     onPoiClick: (PointOfInterest) -> Unit = {}
 ) {
-    // Selection of POIs for the "Previously Visited" section
-    val previousVisits = remember {
-        CulturalPOI.filter { it.name == "Reggia di Caserta" || it.name == "Museo Irpino" }
+    val user = CurrentUser
+    
+    // Selection of POIs based on the user's visited list
+    val previousVisits = remember(user) {
+        user?.visitedPois?.mapNotNull { name ->
+            CulturalPOI.find { it.name.equals(name, ignoreCase = true) }
+        } ?: emptyList()
     }
 
     var tPreviouslyVisited by remember { mutableStateOf("Visitato in precedenza") }
@@ -48,57 +59,82 @@ fun ProfilePage(
                             else TranslationManager.translate("Visitato in precedenza", currentLanguage)
     }
 
-    LazyColumn(
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFF8F8FF))
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            ProfileTopSection()
-        }
-        item {
-            ProfileHeaderCard()
-        }
-        item {
-            LevelProgressCard(currentLanguage = currentLanguage)
-        }
-        item {
-            ActionButtonsGrid(currentLanguage = currentLanguage)
-        }
-        item {
-            PreviousVisitsSection(
-                title = tPreviouslyVisited,
-                pois = previousVisits,
-                onPoiClick = onPoiClick
-            )
-        }
-        item {
-            Spacer(modifier = Modifier.height(16.dp))
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                top = paddingValues.calculateTopPadding() + 16.dp,
+                bottom = paddingValues.calculateBottomPadding() + 16.dp,
+                start = 16.dp,
+                end = 16.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                ProfileTopSection(onClick = onSettingsClick)
+            }
+            
+            if (user != null) {
+                val levelInfo = user.getLevelInfo()
+                
+                item {
+                    ProfileHeaderCard(user = user, onClick = onUserProfileClick)
+                }
+                item {
+                    LevelProgressCard(
+                        levelInfo = levelInfo,
+                        currentLanguage = currentLanguage,
+                        onClick = onGamificationClick
+                    )
+                }
+                item {
+                    ActionButtonsGrid(
+                        currentLanguage = currentLanguage,
+                        onSavedItinerariesClick = onSavedItinerariesClick
+                    )
+                }
+                if (previousVisits.isNotEmpty()) {
+                    item {
+                        PreviousVisitsSection(
+                            title = tPreviouslyVisited,
+                            pois = previousVisits,
+                            onPoiClick = onPoiClick,
+                            currentLanguage = currentLanguage
+                        )
+                    }
+                }
+            } else {
+                item {
+                    LoginPromptCard(onLoginClick = onLoginClick, currentLanguage = currentLanguage)
+                }
+            }
         }
     }
 }
 
 @Composable
-fun ProfileTopSection(modifier: Modifier = Modifier) {
+fun ProfileTopSection(onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(top = 16.dp),
+        modifier = modifier.fillMaxWidth(),
         contentAlignment = Alignment.TopEnd
     ) {
         Surface(
-            modifier = Modifier.size(32.dp),
+            modifier = Modifier
+                .size(56.dp)
+                .clickable { onClick() },
             shape = CircleShape,
             color = Color.White,
-            shadowElevation = 2.dp
+            shadowElevation = 4.dp
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = Icons.Default.Settings,
                     contentDescription = "Settings",
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(28.dp),
                     tint = Color.Black
                 )
             }
@@ -107,9 +143,11 @@ fun ProfileTopSection(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ProfileHeaderCard(modifier: Modifier = Modifier) {
+fun ProfileHeaderCard(user: User, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         shape = RoundedCornerShape(24.dp),
         color = Color.White,
         shadowElevation = 4.dp
@@ -120,17 +158,30 @@ fun ProfileHeaderCard(modifier: Modifier = Modifier) {
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Image(
-                painter = ColorPainter(Color.LightGray),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
+            val profileImageUri = user.profileImageUri
+            if (profileImageUri != null) {
+                AsyncImage(
+                    model = profileImageUri,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop,
+                    error = painterResource(id = R.drawable.default_profile_picture)
+                )
+            } else {
+                Image(
+                    painter = painterResource(id = R.drawable.default_profile_picture),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            }
             Spacer(modifier = Modifier.width(16.dp))
             Text(
-                text = stringResource(R.string.profile_name),
+                text = user.fullName,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
@@ -140,22 +191,74 @@ fun ProfileHeaderCard(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun LevelProgressCard(modifier: Modifier = Modifier, currentLanguage: String) {
-    var tUserLevel by remember { mutableStateOf("Turista") }
-    var tLevel by remember { mutableStateOf("LVL 2") }
-
+fun LoginPromptCard(onLoginClick: () -> Unit, currentLanguage: String, modifier: Modifier = Modifier) {
+    var tAccedi by remember { mutableStateOf("Accedi") }
     LaunchedEffect(currentLanguage) {
+        tAccedi = if (currentLanguage == "it") "Accedi" else TranslationManager.translate("Accedi", currentLanguage)
+    }
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onLoginClick() },
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White,
+        shadowElevation = 4.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(24.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .background(Color(0xFFF5F5F5), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.log_in),
+                    contentDescription = null,
+                    modifier = Modifier.size(32.dp),
+                    tint = Color.Black
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = tAccedi,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+        }
+    }
+}
+
+@Composable
+fun LevelProgressCard(
+    levelInfo: LevelInfo,
+    currentLanguage: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var label by remember { mutableStateOf(levelInfo.label) }
+    var lvlText by remember { mutableStateOf("LVL ${levelInfo.level}") }
+
+    LaunchedEffect(currentLanguage, levelInfo) {
         if (currentLanguage != "it") {
-            tUserLevel = TranslationManager.translate("Turista", currentLanguage)
-            tLevel = TranslationManager.translate("LVL 2", currentLanguage)
+            label = TranslationManager.translate(levelInfo.label, currentLanguage)
+            lvlText = TranslationManager.translate("LVL", currentLanguage) + " ${levelInfo.level}"
         } else {
-            tUserLevel = "Turista"
-            tLevel = "LVL 2"
+            label = levelInfo.label
+            lvlText = "LVL ${levelInfo.level}"
         }
     }
 
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         shape = RoundedCornerShape(24.dp),
         color = Color.White,
         shadowElevation = 4.dp
@@ -167,9 +270,7 @@ fun LevelProgressCard(modifier: Modifier = Modifier, currentLanguage: String) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(Color(0xFFF5F5F5), shape = RoundedCornerShape(8.dp)),
+                modifier = Modifier.size(40.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -183,22 +284,24 @@ fun LevelProgressCard(modifier: Modifier = Modifier, currentLanguage: String) {
             Column(modifier = Modifier.weight(1f)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = tUserLevel,
+                        text = lvlText,
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp
                     )
                     Text(
-                        text = tLevel,
+                        text = label,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                        fontSize = 12.sp,
+                        color = Color.Gray
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 LinearProgressIndicator(
-                    progress = { 0.6f },
+                    progress = { levelInfo.progress },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(8.dp)
@@ -212,7 +315,11 @@ fun LevelProgressCard(modifier: Modifier = Modifier, currentLanguage: String) {
 }
 
 @Composable
-fun ActionButtonsGrid(modifier: Modifier = Modifier, currentLanguage: String) {
+fun ActionButtonsGrid(
+    modifier: Modifier = Modifier,
+    currentLanguage: String,
+    onSavedItinerariesClick: () -> Unit
+) {
     var tSaved by remember { mutableStateOf("Itinerari salvati e creati") }
     var tCreate by remember { mutableStateOf("Crea Itinerario") }
 
@@ -233,12 +340,14 @@ fun ActionButtonsGrid(modifier: Modifier = Modifier, currentLanguage: String) {
         ActionButton(
             modifier = Modifier.weight(1f),
             iconRes = R.drawable.books,
-            text = tSaved
+            text = tSaved,
+            onClick = onSavedItinerariesClick
         )
         ActionButton(
             modifier = Modifier.weight(1f),
             iconRes = R.drawable.create_itinerary,
-            text = tCreate
+            text = tCreate,
+            onClick = { /* Handle Create Itinerary */ }
         )
     }
 }
@@ -247,10 +356,13 @@ fun ActionButtonsGrid(modifier: Modifier = Modifier, currentLanguage: String) {
 fun ActionButton(
     text: String,
     modifier: Modifier = Modifier,
-    iconRes: Int? = null
+    iconRes: Int? = null,
+    onClick: () -> Unit = {}
 ) {
     Surface(
-        modifier = modifier.aspectRatio(1f),
+        modifier = modifier
+            .aspectRatio(1f)
+            .clickable { onClick() },
         shape = RoundedCornerShape(24.dp),
         color = Color.White,
         shadowElevation = 4.dp
@@ -262,7 +374,7 @@ fun ActionButton(
         ) {
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(64.dp)
                     .background(Color.Transparent),
                 contentAlignment = Alignment.Center
             ) {
@@ -270,12 +382,12 @@ fun ActionButton(
                     Icon(
                         painter = painterResource(id = iconRes),
                         contentDescription = null,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(48.dp)
                     )
                 } else {
                     Box(
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(48.dp)
                             .background(Color.Gray, shape = RoundedCornerShape(4.dp))
                     )
                 }
@@ -297,6 +409,7 @@ fun PreviousVisitsSection(
     title: String,
     pois: List<PointOfInterest>,
     onPoiClick: (PointOfInterest) -> Unit,
+    currentLanguage: String,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -369,90 +482,6 @@ fun ProfileVisitCard(
 @Composable
 fun ProfilePagePreview() {
     ExploreSiteTheme {
-        Scaffold(
-            bottomBar = {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    shape = RoundedCornerShape(48.dp),
-                    color = Color.White,
-                    shadowElevation = 8.dp
-                ) {
-                    NavigationBar(
-                        containerColor = Color.Transparent,
-                        modifier = Modifier.height(56.dp)
-                    ) {
-                        NavigationBarItem(
-                            icon = {
-                                Row(
-                                    modifier = Modifier.padding(4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.explore),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Esplora")
-                                }
-                            },
-                            selected = false,
-                            onClick = {},
-                            colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent)
-                        )
-                        NavigationBarItem(
-                            icon = {
-                                Row(
-                                    modifier = Modifier.padding(4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.map),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Mappa")
-                                }
-                            },
-                            selected = false,
-                            onClick = {},
-                            colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent)
-                        )
-                        NavigationBarItem(
-                            icon = {
-                                Row(
-                                    modifier = Modifier
-                                        .padding(4.dp)
-                                        .background(Color.Black, CircleShape)
-                                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.profile),
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Profilo", color = Color.White)
-                                }
-                            },
-                            selected = true,
-                            onClick = {},
-                            colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent)
-                        )
-                    }
-                }
-            }
-        ) { paddingValues ->
-            ProfilePage(
-                modifier = Modifier.padding(paddingValues),
-                currentLanguage = "it",
-                onPoiClick = {}
-            )
-        }
+        ProfilePage(onSavedItinerariesClick = {}, onUserProfileClick = {}, onSettingsClick = {}, onLoginClick = {}, onGamificationClick = {})
     }
 }

@@ -49,6 +49,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.play.services.location)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -64,4 +65,10 @@ dependencies {
     implementation("com.google.mlkit:translate:17.0.3")
     // Required for .await() extension on ML Kit Tasks
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
+
+    // Coil for image loading
+    implementation("io.coil-kt:coil-compose:2.7.0")
+
+    // Gson for persistence
+    implementation("com.google.code.gson:gson:2.11.0")
 }
