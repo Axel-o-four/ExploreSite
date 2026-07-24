@@ -51,10 +51,6 @@ object UserManager {
         val userJson = prefs.getString(KEY_USER, null)
         if (userJson != null) {
             CurrentUser = gson.fromJson(userJson, User::class.java)
-        } else {
-            // If no user saved, don't force log out if CurrentUser was hardcoded for testing, 
-            // but for persistence logic we usually set it to null if nothing is saved.
-            // CurrentUser = null 
         }
     }
 
@@ -75,7 +71,6 @@ object UserManager {
         return if (usersJson != null) {
             gson.fromJson(usersJson, Array<User>::class.java).toList()
         } else {
-            // Return empty or seed with default user
             emptyList()
         }
     }
@@ -109,11 +104,14 @@ object UserManager {
             return false // User already exists
         }
         
-        val persistedUser = if (user.profileImageUri != null && user.profileImageUri.startsWith("content://")) {
-            val internalUri = copyImageToInternalStorage(context, Uri.parse(user.profileImageUri))
-            user.copy(profileImageUri = internalUri)
+        // Ensure the password is encrypted before storing
+        val encryptedUser = user.copy(password = User.encryptPassword(user.password))
+        
+        val persistedUser = if (encryptedUser.profileImageUri != null && encryptedUser.profileImageUri.startsWith("content://")) {
+            val internalUri = copyImageToInternalStorage(context, Uri.parse(encryptedUser.profileImageUri))
+            encryptedUser.copy(profileImageUri = internalUri)
         } else {
-            user
+            encryptedUser
         }
         
         users.add(persistedUser)
@@ -123,7 +121,8 @@ object UserManager {
 
     fun login(context: Context, email: String, password: String): Boolean {
         val users = getAllUsers(context)
-        val user = users.find { it.email == email && it.password == password }
+        val encryptedInputPassword = User.encryptPassword(password)
+        val user = users.find { it.email == email && it.password == encryptedInputPassword }
         return if (user != null) {
             saveCurrentUser(context, user)
             true

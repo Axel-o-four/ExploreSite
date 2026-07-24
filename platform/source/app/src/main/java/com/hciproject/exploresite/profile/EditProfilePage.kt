@@ -22,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -48,12 +47,12 @@ fun EditProfilePage(
     paddingValues: PaddingValues = PaddingValues(0.dp)
 ) {
     val context = LocalContext.current
-    val user = CurrentUser // Capture global state locally
+    val user = CurrentUser
 
-    // Local state initialized with current user data
+    // Local state initialized with current user data (decrypt password for editing)
     var fullName by remember { mutableStateOf(user?.fullName ?: "") }
     var email by remember { mutableStateOf(user?.email ?: "") }
-    var password by remember { mutableStateOf(user?.password ?: "") }
+    var password by remember { mutableStateOf(user?.getDecryptedPassword() ?: "") }
     var dateOfBirth by remember { mutableStateOf(user?.dateOfBirth ?: "") }
     var nationality by remember { mutableStateOf(user?.nationality ?: "") }
     var profileImageUri by remember { mutableStateOf(user?.profileImageUri) }
@@ -70,40 +69,34 @@ fun EditProfilePage(
         "Americana", "Cinese", "Giapponese", "Russa", "Indiana"
     )
 
-    // Image Picker Launcher
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let { profileImageUri = it.toString() }
     }
 
-    // Simple email validation: requires '@' and a '.' after it
     val isEmailValid = email.contains("@") && email.substringAfter("@", "").contains(".")
     
-    // Password security: at least 8 chars, numbers, lower and upper case
     val isPasswordValid = password.length >= 8 &&
             password.any { it.isDigit() } &&
             password.any { it.isLowerCase() } &&
             password.any { it.isUpperCase() }
 
-    // Verification logic: check if any field has changed
     val isChanged = user?.let {
         fullName != it.fullName ||
         email != it.email ||
-        password != it.password ||
+        password != it.getDecryptedPassword() ||
         dateOfBirth != it.dateOfBirth ||
         nationality != it.nationality ||
         profileImageUri != it.profileImageUri
     } ?: true
 
-    // Form validity check
     val isFormValid = fullName.isNotBlank() &&
             isEmailValid &&
             isPasswordValid &&
             dateOfBirth.isNotBlank() &&
             nationality.isNotBlank()
 
-    // Translations
     var tModificaProfilo by remember { mutableStateOf("Modifica profilo") }
     var tNomeCompleto by remember { mutableStateOf("Nome completo") }
     var tEmail by remember { mutableStateOf("Email") }
@@ -134,12 +127,11 @@ fun EditProfilePage(
         }
     }
 
-    // Success Dialog
     if (showSuccessDialog) {
         AlertDialog(
             onDismissRequest = { showSuccessDialog = false },
             confirmButton = {
-                TextButton(onClick = { showSuccessDialog = false }) {
+                TextButton(onClick = { showSuccessDialog = false; onBack() }) {
                     Text(tHoCapito)
                 }
             },
@@ -149,7 +141,6 @@ fun EditProfilePage(
         )
     }
 
-    // Date Picker Dialog
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState()
         DatePickerDialog(
@@ -188,7 +179,6 @@ fun EditProfilePage(
                     bottom = paddingValues.calculateBottomPadding()
                 )
         ) {
-            // Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -399,7 +389,6 @@ fun EditProfilePage(
                 }
             }
 
-            // Bottom Button
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -410,12 +399,12 @@ fun EditProfilePage(
                         val newUser = User(
                             fullName = fullName,
                             email = email,
-                            password = password,
+                            password = User.encryptPassword(password), // Encrypt on save
                             dateOfBirth = dateOfBirth,
                             nationality = nationality,
-                            profileImageUri = profileImageUri
+                            profileImageUri = profileImageUri,
+                            visitedPois = user?.visitedPois ?: emptyList() // Preserve visits
                         )
-                        // Persist the changes
                         UserManager.saveCurrentUser(context, newUser)
                         showSuccessDialog = true
                     },
@@ -426,9 +415,7 @@ fun EditProfilePage(
                     enabled = isChanged && isFormValid,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Black,
-                        contentColor = Color.White,
-                        disabledContainerColor = Color.LightGray,
-                        disabledContentColor = Color.Gray
+                        contentColor = Color.White
                     )
                 ) {
                     Text(

@@ -46,9 +46,9 @@ fun ProfilePage(
 ) {
     val user = CurrentUser
     
-    // Selection of POIs based on the user's visited list
+    // Selection of POIs based on the user's visited list, limited to last 4
     val previousVisits = remember(user) {
-        user?.visitedPois?.mapNotNull { name ->
+        user?.visitedPois?.takeLast(4)?.reversed()?.mapNotNull { name ->
             CulturalPOI.find { it.name.equals(name, ignoreCase = true) }
         } ?: emptyList()
     }

@@ -54,6 +54,8 @@ import com.hciproject.exploresite.profile.LoginPage
 import com.hciproject.exploresite.profile.RegisterPage
 import com.hciproject.exploresite.profile.ReportProblemPage
 import com.hciproject.exploresite.profile.GamificationDetailsPage
+import com.hciproject.exploresite.profile.XpHistoryPage
+import com.hciproject.exploresite.profile.MedalsPage
 import com.hciproject.exploresite.profile.UserManager
 import com.hciproject.exploresite.profile.CurrentUser
 import com.hciproject.exploresite.ui.theme.ExploreSiteTheme
@@ -113,6 +115,8 @@ fun ExploreSiteApp(localPermission: Boolean) {
     var showRegister by rememberSaveable { mutableStateOf(false) }
     var showReportProblem by rememberSaveable { mutableStateOf(false) }
     var showGamificationDetails by rememberSaveable { mutableStateOf(false) }
+    var showXpHistory by rememberSaveable { mutableStateOf(false) }
+    var showMedals by rememberSaveable { mutableStateOf(false) }
 
     // State for translated destination labels
     var translatedLabels by remember { mutableStateOf(AppDestinations.entries.associateWith { it.label }) }
@@ -139,6 +143,14 @@ fun ExploreSiteApp(localPermission: Boolean) {
     if (selectedPoi != null) {
         BackHandler {
             selectedPoi = null
+        }
+    } else if (showMedals) {
+        BackHandler {
+            showMedals = false
+        }
+    } else if (showXpHistory) {
+        BackHandler {
+            showXpHistory = false
         }
     } else if (showGamificationDetails) {
         BackHandler {
@@ -178,7 +190,7 @@ fun ExploreSiteApp(localPermission: Boolean) {
         modifier = Modifier.fillMaxSize(),
         containerColor = Color.White,
         bottomBar = {
-            if (selectedPoi == null && !showSavedItineraries && !showUserDetails && !showSettings && !showEditProfile && !showLogin && !showRegister && !showReportProblem && !showGamificationDetails) {
+            if (selectedPoi == null && !showSavedItineraries && !showUserDetails && !showSettings && !showEditProfile && !showLogin && !showRegister && !showReportProblem && !showGamificationDetails && !showXpHistory && !showMedals) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -234,6 +246,8 @@ fun ExploreSiteApp(localPermission: Boolean) {
                                             showRegister = false
                                             showReportProblem = false
                                             showGamificationDetails = false
+                                            showXpHistory = false
+                                            showMedals = false
                                         }
                                     },
                                     colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent)
@@ -280,9 +294,24 @@ fun ExploreSiteApp(localPermission: Boolean) {
                     currentLanguage = currentLanguage
                 )
             } else if (currentDestination == AppDestinations.PROFILE) {
-                if (showGamificationDetails) {
+                if (showMedals) {
+                    MedalsPage(
+                        onBack = { showMedals = false },
+                        currentLanguage = currentLanguage,
+                        paddingValues = innerPadding
+                    )
+                } else if (showXpHistory) {
+                    XpHistoryPage(
+                        onBack = { showXpHistory = false },
+                        onPoiClick = { poi -> selectedPoi = poi },
+                        currentLanguage = currentLanguage,
+                        paddingValues = innerPadding
+                    )
+                } else if (showGamificationDetails) {
                     GamificationDetailsPage(
                         onBack = { showGamificationDetails = false },
+                        onXpHistoryClick = { showXpHistory = true },
+                        onMedalsClick = { showMedals = true },
                         currentLanguage = currentLanguage,
                         paddingValues = innerPadding
                     )
