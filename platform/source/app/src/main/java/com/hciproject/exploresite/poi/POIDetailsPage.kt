@@ -1,6 +1,9 @@
 package com.hciproject.exploresite.poi
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.location.Location
 import androidx.compose.animation.*
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
@@ -15,9 +18,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,9 +38,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 import com.hciproject.exploresite.POIDetailSuggestionSystem
 import com.hciproject.exploresite.R
 import com.hciproject.exploresite.TranslationManager
+import com.hciproject.exploresite.profile.CurrentUser
+import com.hciproject.exploresite.profile.UserManager
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -53,6 +63,7 @@ fun POIDetailsPage(
     val scope = rememberCoroutineScope()
     
     val sharedPrefs = remember { context.getSharedPreferences("poi_recommendations", Context.MODE_PRIVATE) }
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     
     var showPriceDialog by remember { mutableStateOf(false) }
     var showOpeningDialog by remember { mutableStateOf(false) }
@@ -61,11 +72,19 @@ fun POIDetailsPage(
     var showNoTicketDialog by remember { mutableStateOf(false) }
     var isTranslationMenuVisible by remember { mutableStateOf(false) }
 
+    // Check-in state
+    var isCheckingLocation by remember { mutableStateOf(false) }
+    var showCheckInDialog by remember { mutableStateOf(false) }
+    var checkInMessage by remember { mutableStateOf("") }
+    var checkInSuccess by remember { mutableStateOf(false) }
+
     var currentCardIndex by remember { mutableStateOf(0) }
     var slideDirection by remember { mutableStateOf(1) } // 1 for right, -1 for left
 
+    val user = CurrentUser
+    val hasVisited = user?.visitedPois?.contains(poi.name) == true
+
     // Translation states
-    // Optimization: POI name is never translated
     val tName = poi.name 
     var tAddress by remember { mutableStateOf(poi.address) }
     var tDetailedPrice by remember { mutableStateOf(poi.detailedPrice) }
@@ -90,6 +109,12 @@ fun POIDetailsPage(
     var tTicketsLabel by remember { mutableStateOf("Biglietteria e prenotazioni") }
     var tNoTicketText by remember { mutableStateOf("") }
     var tDescLabel by remember { mutableStateOf("Descrizione") }
+    
+    var tCheckInBtn by remember { mutableStateOf("Conferma visita") }
+    var tCheckInVisited by remember { mutableStateOf("Visita confermata") }
+    var tLocationError by remember { mutableStateOf("Errore nel rilevamento della posizione") }
+    var tDistanceError by remember { mutableStateOf("Sei troppo lontano per confermare la visita. Devi essere entro 10 metri.") }
+    var tCheckInSuccessMsg by remember { mutableStateOf("Visita confermata! Hai guadagnato 20 XP.") }
 
     // Recommendation State
     var isRecommended by remember(poi.name) { 
@@ -104,7 +129,6 @@ fun POIDetailsPage(
         sharedPrefs.edit().putBoolean(poi.name, isRecommended).apply()
     }
 
-    // Translation logic - Optimized with caching in TranslationManager
     LaunchedEffect(poi, currentLanguage) {
         if (currentLanguage == "it") {
             tAddress = poi.address
@@ -129,6 +153,12 @@ fun POIDetailsPage(
             tTicketsLabel = "Biglietteria e prenotazioni"
             tNoTicketText = "${poi.name} non dispone di una biglietteria ufficiale online o di un sistema di prenotazione online."
             tDescLabel = "Descrizione"
+            
+            tCheckInBtn = "Conferma visita"
+            tCheckInVisited = "Visita confermata"
+            tLocationError = "Errore nel rilevamento della posizione"
+            tDistanceError = "Sei troppo lontano per confermare la visita. Devi essere entro 10 metri."
+            tCheckInSuccessMsg = "Visita confermata! Hai guadagnato 20 XP."
         } else {
             tAddress = TranslationManager.translate(poi.address, currentLanguage)
             tDetailedPrice = TranslationManager.translate(poi.detailedPrice, currentLanguage)
@@ -152,6 +182,12 @@ fun POIDetailsPage(
             tTicketsLabel = TranslationManager.translate("Biglietteria e prenotazioni", currentLanguage)
             tNoTicketText = TranslationManager.translate("${poi.name} non dispone di una biglietteria ufficiale online o di un sistema di prenotazione online.", currentLanguage)
             tDescLabel = TranslationManager.translate("Descrizione", currentLanguage)
+            
+            tCheckInBtn = TranslationManager.translate("Conferma visita", currentLanguage)
+            tCheckInVisited = TranslationManager.translate("Visita confermata", currentLanguage)
+            tLocationError = TranslationManager.translate("Errore nel rilevamento della posizione", currentLanguage)
+            tDistanceError = TranslationManager.translate("Sei troppo lontano per confermare la visita. Devi essere entro 10 metri.", currentLanguage)
+            tCheckInSuccessMsg = TranslationManager.translate("Visita confermata! Hai guadagnato 20 XP.", currentLanguage)
         }
     }
 
@@ -169,6 +205,9 @@ fun POIDetailsPage(
     }
     if (showNoTicketDialog) {
         InfoDialog(title = tTicketInfoTitle, text = tNoTicketText, btnText = tUnderstandBtn) { showNoTicketDialog = false }
+    }
+    if (showCheckInDialog) {
+        InfoDialog(title = "Check-in", text = checkInMessage, btnText = tUnderstandBtn) { showCheckInDialog = false }
     }
 
     Surface(
@@ -416,9 +455,120 @@ fun POIDetailsPage(
                 }
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 6. Check-in Section
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                shape = RoundedCornerShape(24.dp),
+                color = if (hasVisited) Color(0xFFF1F8E9) else Color(0xFFFAFAFA),
+                border = if (hasVisited) null else androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Centered Text
+                    Text(
+                        text = if (hasVisited) tCheckInVisited else tCheckInBtn,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (hasVisited) Color(0xFF2E7D32) else Color.Black,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        if (!hasVisited) {
+                            Surface(
+                                onClick = {
+                                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                                        isCheckingLocation = true
+                                        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, CancellationTokenSource().token)
+                                            .addOnSuccessListener { location: Location? ->
+                                                isCheckingLocation = false
+                                                if (location != null) {
+                                                    val results = FloatArray(1)
+                                                    Location.distanceBetween(
+                                                        location.latitude, location.longitude,
+                                                        poi.latitude, poi.longitude,
+                                                        results
+                                                    )
+                                                    val distanceInMeters = results[0]
+
+                                                    if (distanceInMeters <= 10.0) {
+                                                        // Success!
+                                                        val currentUser = CurrentUser
+                                                        if (currentUser != null) {
+                                                            val newList = currentUser.visitedPois.toMutableList()
+                                                            newList.remove(poi.name)
+                                                            newList.add(poi.name)
+                                                            val updatedUser = currentUser.copy(visitedPois = newList)
+                                                            UserManager.saveCurrentUser(context, updatedUser)
+                                                            checkInSuccess = true
+                                                            checkInMessage = tCheckInSuccessMsg
+                                                            showCheckInDialog = true
+                                                        }
+                                                    } else {
+                                                        checkInSuccess = false
+                                                        checkInMessage = tDistanceError
+                                                        showCheckInDialog = true
+                                                    }
+                                                } else {
+                                                    checkInMessage = tLocationError
+                                                    showCheckInDialog = true
+                                                }
+                                            }
+                                            .addOnFailureListener {
+                                                isCheckingLocation = false
+                                                checkInMessage = tLocationError
+                                                showCheckInDialog = true
+                                            }
+                                    } else {
+                                        checkInMessage = "Permesso di posizione non concesso."
+                                        showCheckInDialog = true
+                                    }
+                                },
+                                shape = CircleShape,
+                                color = Color.White,
+                                shadowElevation = 4.dp,
+                                modifier = Modifier.size(32.dp),
+                                enabled = !isCheckingLocation
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    if (isCheckingLocation) {
+                                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.Black, strokeWidth = 2.dp)
+                                    } else {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.explore),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp),
+                                            tint = Color.Black
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = Color(0xFF4CAF50),
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 6. Sliding Info Card Carousel
+            // 7. Sliding Info Card Carousel
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -463,7 +613,7 @@ fun POIDetailsPage(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 7. Suggestion System
+            // 8. Suggestion System
             POIDetailSuggestionSystem(
                 currentPoi = poi,
                 currentLanguage = currentLanguage,

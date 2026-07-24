@@ -39,15 +39,28 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.hciproject.exploresite.itinerary.Itineraries
 import com.hciproject.exploresite.itinerary.ItineraryDetailsPage
 import com.hciproject.exploresite.itinerary.ItineraryPage
 import com.hciproject.exploresite.poi.POIDetailsPage
 import com.hciproject.exploresite.poi.PointOfInterest
+import com.hciproject.exploresite.profile.ProfilePage
+import com.hciproject.exploresite.profile.SavedItinerariesPage
+import com.hciproject.exploresite.profile.UserDetailsPage
+import com.hciproject.exploresite.profile.SettingsPage
+import com.hciproject.exploresite.profile.EditProfilePage
+import com.hciproject.exploresite.profile.LoginPage
+import com.hciproject.exploresite.profile.RegisterPage
+import com.hciproject.exploresite.profile.ReportProblemPage
+import com.hciproject.exploresite.profile.GamificationDetailsPage
+import com.hciproject.exploresite.profile.XpHistoryPage
+import com.hciproject.exploresite.profile.MedalsPage
+import com.hciproject.exploresite.profile.UserManager
+import com.hciproject.exploresite.profile.CurrentUser
 import com.hciproject.exploresite.ui.theme.ExploreSiteTheme
 import org.osmdroid.config.Configuration
 
@@ -55,8 +68,8 @@ class MainActivity : ComponentActivity() {
     private val permissionState = mutableStateOf(false)
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        permissions -> permissionState.value =  permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-                                                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+            permissions -> permissionState.value =  permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,6 +87,9 @@ class MainActivity : ComponentActivity() {
             )
         }
 
+        // Load the saved user data on startup
+        UserManager.loadCurrentUser(applicationContext)
+
         enableEdgeToEdge()
         setContent {
             ExploreSiteTheme {
@@ -88,10 +104,23 @@ class MainActivity : ComponentActivity() {
 @SuppressLint("MissingPermission")
 @Composable
 fun ExploreSiteApp(localPermission: Boolean) {
+    val context = LocalContext.current
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.MAP) }
     var selectedPoi by remember { mutableStateOf<PointOfInterest?>(null) }
     var selectedItinerary by remember { mutableStateOf<Itineraries?>(null) }
     var currentLanguage by rememberSaveable { mutableStateOf("it") }
+
+    // Navigation state within Profile
+    var showSavedItineraries by rememberSaveable { mutableStateOf(false) }
+    var showUserDetails by rememberSaveable { mutableStateOf(false) }
+    var showSettings by rememberSaveable { mutableStateOf(false) }
+    var showEditProfile by rememberSaveable { mutableStateOf(false) }
+    var showLogin by rememberSaveable { mutableStateOf(false) }
+    var showRegister by rememberSaveable { mutableStateOf(false) }
+    var showReportProblem by rememberSaveable { mutableStateOf(false) }
+    var showGamificationDetails by rememberSaveable { mutableStateOf(false) }
+    var showXpHistory by rememberSaveable { mutableStateOf(false) }
+    var showMedals by rememberSaveable { mutableStateOf(false) }
 
     // State for translated destination labels
     var translatedLabels by remember { mutableStateOf(AppDestinations.entries.associateWith { it.label }) }
@@ -114,9 +143,50 @@ fun ExploreSiteApp(localPermission: Boolean) {
     var mapZoom by rememberSaveable { mutableStateOf(15.0) }
     var hasInitiallyCentered by rememberSaveable { mutableStateOf(false) }
 
+    // Handle back presses
     if (selectedPoi != null) {
         BackHandler {
             selectedPoi = null
+        }
+    } else if (showMedals) {
+        BackHandler {
+            showMedals = false
+        }
+    } else if (showXpHistory) {
+        BackHandler {
+            showXpHistory = false
+        }
+    } else if (showGamificationDetails) {
+        BackHandler {
+            showGamificationDetails = false
+        }
+    } else if (showReportProblem) {
+        BackHandler {
+            showReportProblem = false
+        }
+    } else if (showRegister) {
+        BackHandler {
+            showRegister = false
+        }
+    } else if (showLogin) {
+        BackHandler {
+            showLogin = false
+        }
+    } else if (showEditProfile) {
+        BackHandler {
+            showEditProfile = false
+        }
+    } else if (showSavedItineraries) {
+        BackHandler {
+            showSavedItineraries = false
+        }
+    } else if (showUserDetails) {
+        BackHandler {
+            showUserDetails = false
+        }
+    } else if (showSettings) {
+        BackHandler {
+            showSettings = false
         }
     }
     
@@ -130,7 +200,7 @@ fun ExploreSiteApp(localPermission: Boolean) {
         modifier = Modifier.fillMaxSize(),
         containerColor = Color.White,
         bottomBar = {
-            if (selectedPoi == null && selectedItinerary == null) {
+            if (selectedPoi == null && !showSavedItineraries && !showUserDetails && !showSettings && !showEditProfile && !showLogin && !showRegister && !showReportProblem && !showGamificationDetails && !showXpHistory && !showMedals) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -175,7 +245,21 @@ fun ExploreSiteApp(localPermission: Boolean) {
                                         }
                                     },
                                     selected = destinations == currentDestination,
-                                    onClick = { currentDestination = destinations },
+                                    onClick = { 
+                                        currentDestination = destinations
+                                        if (destinations != AppDestinations.PROFILE) {
+                                            showSavedItineraries = false
+                                            showUserDetails = false
+                                            showSettings = false
+                                            showEditProfile = false
+                                            showLogin = false
+                                            showRegister = false
+                                            showReportProblem = false
+                                            showGamificationDetails = false
+                                            showXpHistory = false
+                                            showMedals = false
+                                        }
+                                    },
                                     colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent)
                                 )
                             }
@@ -230,10 +314,98 @@ fun ExploreSiteApp(localPermission: Boolean) {
                     onItineraryClick = { itinerary -> selectedItinerary = itinerary }
                 )
             } else if (currentDestination == AppDestinations.PROFILE) {
-                ProfilePage(
-                    modifier = Modifier.padding(innerPadding).background(Color.White),
-                    currentLanguage = currentLanguage
-                )
+                if (showMedals) {
+                    MedalsPage(
+                        onBack = { showMedals = false },
+                        currentLanguage = currentLanguage,
+                        paddingValues = innerPadding
+                    )
+                } else if (showXpHistory) {
+                    XpHistoryPage(
+                        onBack = { showXpHistory = false },
+                        onPoiClick = { poi -> selectedPoi = poi },
+                        currentLanguage = currentLanguage,
+                        paddingValues = innerPadding
+                    )
+                } else if (showGamificationDetails) {
+                    GamificationDetailsPage(
+                        onBack = { showGamificationDetails = false },
+                        onXpHistoryClick = { showXpHistory = true },
+                        onMedalsClick = { showMedals = true },
+                        currentLanguage = currentLanguage,
+                        paddingValues = innerPadding
+                    )
+                } else if (showReportProblem) {
+                    ReportProblemPage(
+                        onBack = { showReportProblem = false },
+                        currentLanguage = currentLanguage,
+                        paddingValues = innerPadding
+                    )
+                } else if (showRegister) {
+                    RegisterPage(
+                        onBack = { showRegister = false },
+                        onRegisterSuccess = { showRegister = false; showLogin = true },
+                        currentLanguage = currentLanguage,
+                        paddingValues = innerPadding
+                    )
+                } else if (showLogin) {
+                    LoginPage(
+                        onBack = { showLogin = false },
+                        onLoginSuccess = { showLogin = false },
+                        currentLanguage = currentLanguage,
+                        paddingValues = innerPadding
+                    )
+                } else if (showEditProfile) {
+                    EditProfilePage(
+                        onBack = { showEditProfile = false },
+                        currentLanguage = currentLanguage,
+                        paddingValues = innerPadding
+                    )
+                } else if (showSavedItineraries) {
+                    SavedItinerariesPage(
+                        onBack = { showSavedItineraries = false },
+                        currentLanguage = currentLanguage,
+                        paddingValues = innerPadding
+                    )
+                } else if (showUserDetails) {
+                    UserDetailsPage(
+                        onBack = { showUserDetails = false },
+                        currentLanguage = currentLanguage,
+                        paddingValues = innerPadding
+                    )
+                } else if (showSettings) {
+                    SettingsPage(
+                        onBack = { showSettings = false },
+                        onEditProfileClick = { showEditProfile = true },
+                        onRegisterClick = { showRegister = true },
+                        onLogoutClick = { 
+                            UserManager.logout(context)
+                            showSettings = false 
+                        },
+                        onDeleteAccountClick = {
+                            val user = CurrentUser
+                            if (user != null) {
+                                UserManager.deleteAccount(context, user)
+                                showSettings = false
+                            }
+                        },
+                        onReportProblemClick = { showReportProblem = true },
+                        currentLanguage = currentLanguage,
+                        paddingValues = innerPadding
+                    )
+                } else {
+                    ProfilePage(
+                        onSavedItinerariesClick = { showSavedItineraries = true },
+                        onUserProfileClick = { showUserDetails = true },
+                        onSettingsClick = { showSettings = true },
+                        onLoginClick = { showLogin = true },
+                        onGamificationClick = { showGamificationDetails = true },
+                        modifier = Modifier.fillMaxSize(),
+                        paddingValues = innerPadding,
+                        currentLanguage = currentLanguage,
+                        onPoiClick = { poi -> selectedPoi = poi }
+                    )
+                }
             }
         }
     }
@@ -246,6 +418,13 @@ enum class AppDestinations(val label: String, val iconRes: Int) {
 }
 
 @Composable
+fun ExplorePage(modifier: Modifier = Modifier, currentLanguage: String) {
+    var tExplore by remember { mutableStateOf("Esplora") }
+    LaunchedEffect(currentLanguage) {
+        tExplore = if (currentLanguage == "it") "Esplora" else TranslationManager.translate("Esplora", currentLanguage)
+    }
+    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text = tExplore, style = MaterialTheme.typography.headlineLarge)
 fun ProfilePage(modifier: Modifier = Modifier, currentLanguage: String) {
     var tProfile by remember { mutableStateOf("Profilo") }
     LaunchedEffect(currentLanguage) {
