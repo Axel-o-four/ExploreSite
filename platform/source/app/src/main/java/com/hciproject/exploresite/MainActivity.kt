@@ -148,6 +148,10 @@ fun ExploreSiteApp(localPermission: Boolean) {
         BackHandler {
             selectedPoi = null
         }
+    } else if (selectedItinerary != null) {
+        BackHandler {
+            selectedItinerary = null
+        }
     } else if (showMedals) {
         BackHandler {
             showMedals = false
@@ -189,18 +193,12 @@ fun ExploreSiteApp(localPermission: Boolean) {
             showSettings = false
         }
     }
-    
-    if (selectedItinerary != null) {
-        BackHandler {
-            selectedItinerary = null
-        }
-    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = Color.White,
         bottomBar = {
-            if (selectedPoi == null && !showSavedItineraries && !showUserDetails && !showSettings && !showEditProfile && !showLogin && !showRegister && !showReportProblem && !showGamificationDetails && !showXpHistory && !showMedals) {
+            if (selectedPoi == null && selectedItinerary == null && !showSavedItineraries && !showUserDetails && !showSettings && !showEditProfile && !showLogin && !showRegister && !showReportProblem && !showGamificationDetails && !showXpHistory && !showMedals) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -247,6 +245,8 @@ fun ExploreSiteApp(localPermission: Boolean) {
                                     selected = destinations == currentDestination,
                                     onClick = { 
                                         currentDestination = destinations
+                                        selectedPoi = null
+                                        selectedItinerary = null
                                         if (destinations != AppDestinations.PROFILE) {
                                             showSavedItineraries = false
                                             showUserDetails = false
@@ -308,7 +308,8 @@ fun ExploreSiteApp(localPermission: Boolean) {
                 )
             } else if (currentDestination == AppDestinations.EXPLORE) {
                 ItineraryPage(
-                    modifier = Modifier.padding(innerPadding).background(Color.White),
+                    modifier = Modifier.fillMaxSize(),
+                    paddingValues = innerPadding,
                     currentLanguage = currentLanguage,
                     onLanguageChange = { currentLanguage = it },
                     onItineraryClick = { itinerary -> selectedItinerary = itinerary }
@@ -415,22 +416,4 @@ enum class AppDestinations(val label: String, val iconRes: Int) {
     EXPLORE("Esplora", R.drawable.explore),
     MAP("Mappa", R.drawable.map),
     PROFILE("Profilo", R.drawable.profile);
-}
-
-@Composable
-fun ExplorePage(modifier: Modifier = Modifier, currentLanguage: String) {
-    var tExplore by remember { mutableStateOf("Esplora") }
-    LaunchedEffect(currentLanguage) {
-        tExplore = if (currentLanguage == "it") "Esplora" else TranslationManager.translate("Esplora", currentLanguage)
-    }
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = tExplore, style = MaterialTheme.typography.headlineLarge)
-fun ProfilePage(modifier: Modifier = Modifier, currentLanguage: String) {
-    var tProfile by remember { mutableStateOf("Profilo") }
-    LaunchedEffect(currentLanguage) {
-        tProfile = if (currentLanguage == "it") "Profilo" else TranslationManager.translate("Profilo", currentLanguage)
-    }
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = tProfile, style = MaterialTheme.typography.headlineLarge)
-    }
 }

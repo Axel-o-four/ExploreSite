@@ -23,6 +23,7 @@ import com.hciproject.exploresite.TranslationManager
 @Composable
 fun ItineraryPage(
     modifier: Modifier = Modifier,
+    paddingValues: PaddingValues = PaddingValues(0.dp),
     currentLanguage: String,
     onLanguageChange: (String) -> Unit,
     onItineraryClick: (Itineraries) -> Unit
@@ -36,81 +37,90 @@ fun ItineraryPage(
         else TranslationManager.translate("Cerca un itinerario...", currentLanguage)
     }
 
-    Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
-        // Top Bar with Search and Translate (Matching MapPage style exactly)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(48.dp),
-                color = Color.White,
-                shadowElevation = 8.dp
-            ) {
-                TextField(
-                    value = searchText,
-                    onValueChange = { searchText = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    textStyle = LocalTextStyle.current.copy(fontSize = 12.sp),
-                    placeholder = { Text(tSearchPlaceholder, fontSize = 12.sp) },
-                    leadingIcon = {
-                        Icon(
-                            painter = painterResource(R.drawable.search),
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    },
-                    singleLine = true,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    )
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Box {
-                FloatingActionButton(
-                    onClick = { isTranslationMenuVisible = true },
-                    containerColor = Color.White,
-                    contentColor = Color.Black,
-                    shape = CircleShape,
-                    modifier = Modifier.size(56.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.translation),
-                        contentDescription = "Translate",
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                DropdownMenu(
-                    expanded = isTranslationMenuVisible,
-                    onDismissRequest = { isTranslationMenuVisible = false },
-                    modifier = Modifier.background(Color.White)
-                ) {
-                    TranslationManager.supportedLanguages.forEach { langCode ->
-                        DropdownMenuItem(
-                            text = { Text(TranslationManager.getLanguageName(langCode)) },
-                            onClick = {
-                                onLanguageChange(langCode)
-                                isTranslationMenuVisible = false
-                            }
-                        )
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8F8FF))
+    ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(bottom = 80.dp)
+            contentPadding = PaddingValues(
+                top = paddingValues.calculateTopPadding() + 16.dp,
+                bottom = paddingValues.calculateBottomPadding() + 16.dp,
+                start = 16.dp,
+                end = 16.dp
+            )
         ) {
+            item {
+                // Top Bar with Search and Translate
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(48.dp),
+                        color = Color.White,
+                        shadowElevation = 8.dp
+                    ) {
+                        TextField(
+                            value = searchText,
+                            onValueChange = { searchText = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            textStyle = LocalTextStyle.current.copy(fontSize = 12.sp),
+                            placeholder = { Text(tSearchPlaceholder, fontSize = 12.sp) },
+                            leadingIcon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.search),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            },
+                            singleLine = true,
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent
+                            )
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box {
+                        FloatingActionButton(
+                            onClick = { isTranslationMenuVisible = true },
+                            containerColor = Color.White,
+                            contentColor = Color.Black,
+                            shape = CircleShape,
+                            modifier = Modifier.size(56.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.translation),
+                                contentDescription = "Translate",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = isTranslationMenuVisible,
+                            onDismissRequest = { isTranslationMenuVisible = false },
+                            modifier = Modifier.background(Color.White)
+                        ) {
+                            TranslationManager.supportedLanguages.forEach { langCode ->
+                                DropdownMenuItem(
+                                    text = { Text(TranslationManager.getLanguageName(langCode)) },
+                                    onClick = {
+                                        onLanguageChange(langCode)
+                                        isTranslationMenuVisible = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             items(SampleItineraries.filter { 
                 it.title.contains(searchText, ignoreCase = true) || 
                 it.author.contains(searchText, ignoreCase = true) 
@@ -131,7 +141,8 @@ fun ItineraryCard(itineraries: Itineraries, onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // 1. Title (original, not translated)
@@ -213,8 +224,8 @@ fun PoiPill(name: String, iconRes: Int, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(24.dp),
-        color = Color.White,
-        shadowElevation = 2.dp
+        color = Color(0xFFF5F5F5),
+        shadowElevation = 0.dp
     ) {
         Box(
             modifier = Modifier

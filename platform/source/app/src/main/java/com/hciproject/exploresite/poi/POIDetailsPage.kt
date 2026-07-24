@@ -9,6 +9,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -464,7 +465,7 @@ fun POIDetailsPage(
                     .padding(horizontal = 24.dp),
                 shape = RoundedCornerShape(24.dp),
                 color = if (hasVisited) Color(0xFFF1F8E9) else Color(0xFFFAFAFA),
-                border = if (hasVisited) null else androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray)
+                border = if (hasVisited) null else BorderStroke(1.dp, Color.LightGray)
             ) {
                 Box(
                     modifier = Modifier
@@ -472,7 +473,7 @@ fun POIDetailsPage(
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Centered Text
+                    // Centered Text: "Conferma visita" or "Visita confermata"
                     Text(
                         text = if (hasVisited) tCheckInVisited else tCheckInBtn,
                         style = MaterialTheme.typography.titleMedium,
@@ -481,6 +482,7 @@ fun POIDetailsPage(
                         textAlign = TextAlign.Center
                     )
 
+                    // Action/Status icon on the right
                     Box(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.CenterEnd
@@ -503,7 +505,6 @@ fun POIDetailsPage(
                                                     val distanceInMeters = results[0]
 
                                                     if (distanceInMeters <= 10.0) {
-                                                        // Success!
                                                         val currentUser = CurrentUser
                                                         if (currentUser != null) {
                                                             val newList = currentUser.visitedPois.toMutableList()
