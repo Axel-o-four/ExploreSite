@@ -4,6 +4,7 @@ import android.util.Base64
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.hciproject.exploresite.itinerary.Itineraries
 
 data class User(
     val fullName: String,
@@ -12,7 +13,12 @@ data class User(
     val dateOfBirth: String,
     val nationality: String,
     val profileImageUri: String? = null,
-    val visitedPois: List<String> = emptyList()
+    val visitedPois: List<String> = emptyList(),
+    val savedItineraries: List<Itineraries> = emptyList(),
+    val createdItineraries: List<Itineraries> = emptyList(),
+    val isLocationEnabled: Boolean = true,
+    val isMailNotificationsEnabled: Boolean = true,
+    val isPrivateItineraries: Boolean = false
 ) {
     /**
      * Calculates total XP based on visited POIs and achieved medals.
@@ -97,5 +103,8 @@ var CurrentUser by mutableStateOf<User?>(User(
         "Museo Archeologico Provinciale di Salerno",
         // Additional visits
         "Reggia di Caserta"
-    )
+    ),
+    isLocationEnabled = true,
+    isMailNotificationsEnabled = true,
+    isPrivateItineraries = false
 ))

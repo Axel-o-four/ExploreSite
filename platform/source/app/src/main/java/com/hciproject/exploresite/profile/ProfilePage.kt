@@ -35,6 +35,7 @@ import com.hciproject.exploresite.ui.theme.GrayLight
 @Composable
 fun ProfilePage(
     onSavedItinerariesClick: () -> Unit,
+    onCreateItineraryClick: () -> Unit,
     onUserProfileClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onLoginClick: () -> Unit,
@@ -94,7 +95,8 @@ fun ProfilePage(
                 item {
                     ActionButtonsGrid(
                         currentLanguage = currentLanguage,
-                        onSavedItinerariesClick = onSavedItinerariesClick
+                        onSavedItinerariesClick = onSavedItinerariesClick,
+                        onCreateItineraryClick = onCreateItineraryClick
                     )
                 }
                 if (previousVisits.isNotEmpty()) {
@@ -318,7 +320,8 @@ fun LevelProgressCard(
 fun ActionButtonsGrid(
     modifier: Modifier = Modifier,
     currentLanguage: String,
-    onSavedItinerariesClick: () -> Unit
+    onSavedItinerariesClick: () -> Unit,
+    onCreateItineraryClick: () -> Unit
 ) {
     var tSaved by remember { mutableStateOf("Itinerari salvati e creati") }
     var tCreate by remember { mutableStateOf("Crea Itinerario") }
@@ -347,7 +350,7 @@ fun ActionButtonsGrid(
             modifier = Modifier.weight(1f),
             iconRes = R.drawable.create_itinerary,
             text = tCreate,
-            onClick = { /* Handle Create Itinerary */ }
+            onClick = onCreateItineraryClick
         )
     }
 }
@@ -482,6 +485,6 @@ fun ProfileVisitCard(
 @Composable
 fun ProfilePagePreview() {
     ExploreSiteTheme {
-        ProfilePage(onSavedItinerariesClick = {}, onUserProfileClick = {}, onSettingsClick = {}, onLoginClick = {}, onGamificationClick = {})
+        ProfilePage(onSavedItinerariesClick = {}, onCreateItineraryClick = {}, onUserProfileClick = {}, onSettingsClick = {}, onLoginClick = {}, onGamificationClick = {})
     }
 }

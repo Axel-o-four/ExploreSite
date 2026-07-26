@@ -1,5 +1,6 @@
 package com.hciproject.exploresite.profile
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -14,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -29,14 +31,20 @@ fun SettingsPage(
     onLogoutClick: () -> Unit,
     onDeleteAccountClick: () -> Unit,
     currentLanguage: String = "it",
-    paddingValues: PaddingValues = PaddingValues(0.dp)
+    paddingValues: PaddingValues = PaddingValues(0.0.dp)
 ) {
+    val context = LocalContext.current
+    val user = CurrentUser
+
     var tImpostazioni by remember { mutableStateOf("Impostazioni") }
     var tAccount by remember { mutableStateOf("Account") }
     var tAzioni by remember { mutableStateOf("Azioni") }
     var tModificaProfilo by remember { mutableStateOf("Modifica profilo") }
     var tPrivacy by remember { mutableStateOf("Privacy") }
     var tNotifiche by remember { mutableStateOf("Notifiche") }
+    var tPosizione by remember { mutableStateOf("Autorizzazione posizione") }
+    var tMailNotifiche by remember { mutableStateOf("Ricevi notifiche via mail") }
+    var tItinerariPrivati by remember { mutableStateOf("Rendere i propri itinerari privati") }
     
     var tSegnalaProblema by remember { mutableStateOf("Segnala un problema") }
     var tRegistraNuovoAccount by remember { mutableStateOf("Registra un nuovo account") }
@@ -51,6 +59,9 @@ fun SettingsPage(
             tModificaProfilo = TranslationManager.translate("Modifica profilo", currentLanguage)
             tPrivacy = TranslationManager.translate("Privacy", currentLanguage)
             tNotifiche = TranslationManager.translate("Notifiche", currentLanguage)
+            tPosizione = TranslationManager.translate("Autorizzazione posizione", currentLanguage)
+            tMailNotifiche = TranslationManager.translate("Ricevi notifiche via mail", currentLanguage)
+            tItinerariPrivati = TranslationManager.translate("Rendere i propri itinerari privati", currentLanguage)
             tSegnalaProblema = TranslationManager.translate("Segnala un problema", currentLanguage)
             tRegistraNuovoAccount = TranslationManager.translate("Registra un nuovo account", currentLanguage)
             tLogout = TranslationManager.translate("Log-out", currentLanguage)
@@ -62,6 +73,9 @@ fun SettingsPage(
             tModificaProfilo = "Modifica profilo"
             tPrivacy = "Privacy"
             tNotifiche = "Notifiche"
+            tPosizione = "Autorizzazione posizione"
+            tMailNotifiche = "Ricevi notifiche via mail"
+            tItinerariPrivati = "Rendere i propri itinerari privati"
             tSegnalaProblema = "Segnala un problema"
             tRegistraNuovoAccount = "Registra un nuovo account"
             tLogout = "Log-out"
@@ -122,20 +136,87 @@ fun SettingsPage(
                             iconRes = R.drawable.profile,
                             label = tModificaProfilo,
                             onClick = onEditProfileClick,
-                            enabled = CurrentUser != null
+                            enabled = user != null
                         )
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color(0xFFF5F5F5))
-                        SettingsItem(
-                            iconRes = R.drawable.privacy,
-                            label = tPrivacy,
-                            onClick = { /* Handle Privacy */ }
-                        )
+                        
+                        // Privacy Section
+                        Column {
+                            SettingsItem(
+                                iconRes = R.drawable.privacy,
+                                label = tPrivacy,
+                                onClick = {
+                                    if (user == null) {
+                                        Toast.makeText(context, if(currentLanguage == "it") "Devi aver effettuato l'accesso per questa funzione" else "You must be logged in for this feature", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            )
+                            
+                            // Always available location toggle
+                            val locationChecked = if (user != null) user.isLocationEnabled else UserManager.isGlobalLocationEnabled(context)
+                            SettingsCheckboxItem(
+                                label = tPosizione,
+                                checked = locationChecked,
+                                onCheckedChange = { isChecked ->
+                                    if (user != null) {
+                                        UserManager.saveCurrentUser(context, user.copy(isLocationEnabled = isChecked))
+                                    } else {
+                                        UserManager.setGlobalLocationEnabled(context, isChecked)
+                                        // Force recomposition since it's a global pref
+                                        onBack()
+                                        onBack() // This is a hack to trigger parent update, better would be a shared state
+                                    }
+                                },
+                                modifier = Modifier.padding(start = 48.dp),
+                                enabled = true
+                            )
+                            
+                            SettingsCheckboxItem(
+                                label = tItinerariPrivati,
+                                checked = user?.isPrivateItineraries ?: false,
+                                onCheckedChange = { isChecked ->
+                                    if (user != null) {
+                                        val updatedCreated = user.createdItineraries.map { it.copy(isPrivate = isChecked) }
+                                        UserManager.saveCurrentUser(context, user.copy(
+                                            isPrivateItineraries = isChecked,
+                                            createdItineraries = updatedCreated
+                                        ))
+                                    } else {
+                                        Toast.makeText(context, if(currentLanguage == "it") "Devi aver effettuato l'accesso per questa funzione" else "You must be logged in for this feature", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                modifier = Modifier.padding(start = 48.dp),
+                                enabled = user != null
+                            )
+                        }
+                        
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color(0xFFF5F5F5))
-                        SettingsItem(
-                            iconRes = R.drawable.notifications,
-                            label = tNotifiche,
-                            onClick = { /* Handle Notifications */ }
-                        )
+                        
+                        // Notifications Section
+                        Column {
+                            SettingsItem(
+                                iconRes = R.drawable.notifications,
+                                label = tNotifiche,
+                                onClick = {
+                                    if (user == null) {
+                                        Toast.makeText(context, if(currentLanguage == "it") "Devi aver effettuato l'accesso per questa funzione" else "You must be logged in for this feature", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            )
+                            SettingsCheckboxItem(
+                                label = tMailNotifiche,
+                                checked = user?.isMailNotificationsEnabled ?: true,
+                                onCheckedChange = { isChecked ->
+                                    if (user != null) {
+                                        UserManager.saveCurrentUser(context, user.copy(isMailNotificationsEnabled = isChecked))
+                                    } else {
+                                        Toast.makeText(context, if(currentLanguage == "it") "Devi aver effettuato l'accesso per questa funzione" else "You must be logged in for this feature", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                modifier = Modifier.padding(start = 48.dp),
+                                enabled = user != null
+                            )
+                        }
                     }
                 }
 
@@ -157,14 +238,14 @@ fun SettingsPage(
                             iconRes = R.drawable.log_out,
                             label = tLogout,
                             onClick = onLogoutClick,
-                            enabled = CurrentUser != null
+                            enabled = user != null
                         )
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color(0xFFF5F5F5))
                         SettingsItem(
                             iconRes = R.drawable.recycle_bin,
                             label = tEliminaAccount,
                             onClick = onDeleteAccountClick,
-                            enabled = CurrentUser != null,
+                            enabled = user != null,
                             tint = Color.Red
                         )
                     }
@@ -210,7 +291,7 @@ fun SettingsItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(enabled = enabled) { onClick() }
+            .clickable(enabled = true) { onClick() } // Always clickable to show Toast if needed
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -236,6 +317,40 @@ fun SettingsItem(
             fontWeight = FontWeight.Medium,
             modifier = Modifier.weight(1f),
             color = tint.copy(alpha = contentAlpha)
+        )
+    }
+}
+
+@Composable
+fun SettingsCheckboxItem(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    val contentAlpha = if (enabled) 1f else 0.4f
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(end = 16.dp, top = 4.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.DarkGray.copy(alpha = contentAlpha),
+            modifier = Modifier.weight(1f)
+        )
+        Checkbox(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            enabled = true, // Keep enabled to capture clicks for Toast if needed
+            colors = CheckboxDefaults.colors(
+                checkedColor = Color.Black.copy(alpha = contentAlpha),
+                uncheckedColor = Color.Gray.copy(alpha = contentAlpha)
+            )
         )
     }
 }

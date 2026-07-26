@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hciproject.exploresite.R
 import com.hciproject.exploresite.TranslationManager
+import com.hciproject.exploresite.profile.CurrentUser
 
 @Composable
 fun ItineraryPage(
@@ -35,6 +36,13 @@ fun ItineraryPage(
     LaunchedEffect(currentLanguage) {
         tSearchPlaceholder = if (currentLanguage == "it") "Cerca un itinerario..."
         else TranslationManager.translate("Cerca un itinerario...", currentLanguage)
+    }
+
+    // Combine sample itineraries with user-created ones, filtering out private ones
+    val allItineraries = remember(CurrentUser, CurrentUser?.createdItineraries) {
+        val userCreated = CurrentUser?.createdItineraries ?: emptyList()
+        // Filter out private itineraries. Sample itineraries are always public.
+        SampleItineraries + userCreated.filter { !it.isPrivate }
     }
 
     Box(
@@ -121,7 +129,7 @@ fun ItineraryPage(
                 }
             }
 
-            items(SampleItineraries.filter { 
+            items(allItineraries.filter { 
                 it.title.contains(searchText, ignoreCase = true) || 
                 it.author.contains(searchText, ignoreCase = true) 
             }) { item ->
@@ -202,7 +210,7 @@ fun ItineraryCard(itineraries: Itineraries, onClick: () -> Unit) {
                 // Suggestions on the right (matching author color)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        painter = painterResource(R.drawable.thumb_up),
+                        painter = painterResource(id = R.drawable.thumb_up),
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
                         tint = Color.Black

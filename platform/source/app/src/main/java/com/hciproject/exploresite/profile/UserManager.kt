@@ -10,6 +10,7 @@ object UserManager {
     private const val PREFS_NAME = "user_prefs"
     private const val KEY_USER = "current_user"
     private const val KEY_USERS_LIST = "users_list"
+    private const val KEY_GLOBAL_LOCATION = "global_location_enabled"
     private val gson = Gson()
 
     fun saveCurrentUser(context: Context, user: User?) {
@@ -50,7 +51,13 @@ object UserManager {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val userJson = prefs.getString(KEY_USER, null)
         if (userJson != null) {
-            CurrentUser = gson.fromJson(userJson, User::class.java)
+            try {
+                CurrentUser = gson.fromJson(userJson, User::class.java)
+            } catch (e: Exception) {
+                // If data structure changed and causes incompatibility, clear the corrupted state
+                prefs.edit().remove(KEY_USER).apply()
+                CurrentUser = null
+            }
         }
     }
 
@@ -69,7 +76,11 @@ object UserManager {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val usersJson = prefs.getString(KEY_USERS_LIST, null)
         return if (usersJson != null) {
-            gson.fromJson(usersJson, Array<User>::class.java).toList()
+            try {
+                gson.fromJson(usersJson, Array<User>::class.java).toList()
+            } catch (e: Exception) {
+                emptyList()
+            }
         } else {
             emptyList()
         }
@@ -129,5 +140,16 @@ object UserManager {
         } else {
             false
         }
+    }
+
+    // Global settings for non-logged-in users
+    fun isGlobalLocationEnabled(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getBoolean(KEY_GLOBAL_LOCATION, true)
+    }
+
+    fun setGlobalLocationEnabled(context: Context, enabled: Boolean) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putBoolean(KEY_GLOBAL_LOCATION, enabled).apply()
     }
 }

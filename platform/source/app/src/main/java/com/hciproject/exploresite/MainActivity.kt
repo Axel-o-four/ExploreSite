@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -46,6 +47,7 @@ import androidx.core.content.ContextCompat
 import com.hciproject.exploresite.itinerary.Itineraries
 import com.hciproject.exploresite.itinerary.ItineraryDetailsPage
 import com.hciproject.exploresite.itinerary.ItineraryPage
+import com.hciproject.exploresite.itinerary.CreateItineraryPage
 import com.hciproject.exploresite.poi.POIDetailsPage
 import com.hciproject.exploresite.poi.PointOfInterest
 import com.hciproject.exploresite.profile.ProfilePage
@@ -94,7 +96,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             ExploreSiteTheme {
                 ExploreSiteApp(
-                    localPermission = permissionState.value
+                    systemPermission = permissionState.value
                 )
             }
         }
@@ -103,7 +105,7 @@ class MainActivity : ComponentActivity() {
 
 @SuppressLint("MissingPermission")
 @Composable
-fun ExploreSiteApp(localPermission: Boolean) {
+fun ExploreSiteApp(systemPermission: Boolean) {
     val context = LocalContext.current
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.MAP) }
     var selectedPoi by remember { mutableStateOf<PointOfInterest?>(null) }
@@ -121,6 +123,16 @@ fun ExploreSiteApp(localPermission: Boolean) {
     var showGamificationDetails by rememberSaveable { mutableStateOf(false) }
     var showXpHistory by rememberSaveable { mutableStateOf(false) }
     var showMedals by rememberSaveable { mutableStateOf(false) }
+    var showCreateItinerary by rememberSaveable { mutableStateOf(false) }
+
+    // Final permission state combined with user setting (profile or global)
+    val user = CurrentUser
+    val locationAllowedByUser = if (user != null) {
+        user.isLocationEnabled
+    } else {
+        UserManager.isGlobalLocationEnabled(context)
+    }
+    val effectivePermission = systemPermission && locationAllowedByUser
 
     // State for translated destination labels
     var translatedLabels by remember { mutableStateOf(AppDestinations.entries.associateWith { it.label }) }
@@ -145,60 +157,38 @@ fun ExploreSiteApp(localPermission: Boolean) {
 
     // Handle back presses
     if (selectedPoi != null) {
-        BackHandler {
-            selectedPoi = null
-        }
+        BackHandler { selectedPoi = null }
     } else if (selectedItinerary != null) {
-        BackHandler {
-            selectedItinerary = null
-        }
+        BackHandler { selectedItinerary = null }
+    } else if (showCreateItinerary) {
+        BackHandler { showCreateItinerary = false }
     } else if (showMedals) {
-        BackHandler {
-            showMedals = false
-        }
+        BackHandler { showMedals = false }
     } else if (showXpHistory) {
-        BackHandler {
-            showXpHistory = false
-        }
+        BackHandler { showXpHistory = false }
     } else if (showGamificationDetails) {
-        BackHandler {
-            showGamificationDetails = false
-        }
+        BackHandler { showGamificationDetails = false }
     } else if (showReportProblem) {
-        BackHandler {
-            showReportProblem = false
-        }
+        BackHandler { showReportProblem = false }
     } else if (showRegister) {
-        BackHandler {
-            showRegister = false
-        }
+        BackHandler { showRegister = false }
     } else if (showLogin) {
-        BackHandler {
-            showLogin = false
-        }
+        BackHandler { showLogin = false }
     } else if (showEditProfile) {
-        BackHandler {
-            showEditProfile = false
-        }
+        BackHandler { showEditProfile = false }
     } else if (showSavedItineraries) {
-        BackHandler {
-            showSavedItineraries = false
-        }
+        BackHandler { showSavedItineraries = false }
     } else if (showUserDetails) {
-        BackHandler {
-            showUserDetails = false
-        }
+        BackHandler { showUserDetails = false }
     } else if (showSettings) {
-        BackHandler {
-            showSettings = false
-        }
+        BackHandler { showSettings = false }
     }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = Color.White,
         bottomBar = {
-            if (selectedPoi == null && selectedItinerary == null && !showSavedItineraries && !showUserDetails && !showSettings && !showEditProfile && !showLogin && !showRegister && !showReportProblem && !showGamificationDetails && !showXpHistory && !showMedals) {
+            if (selectedPoi == null && selectedItinerary == null && !showSavedItineraries && !showUserDetails && !showSettings && !showEditProfile && !showLogin && !showRegister && !showReportProblem && !showGamificationDetails && !showXpHistory && !showMedals && !showCreateItinerary) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -258,6 +248,7 @@ fun ExploreSiteApp(localPermission: Boolean) {
                                             showGamificationDetails = false
                                             showXpHistory = false
                                             showMedals = false
+                                            showCreateItinerary = false
                                         }
                                     },
                                     colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent)
@@ -272,7 +263,7 @@ fun ExploreSiteApp(localPermission: Boolean) {
         Box(modifier = Modifier.fillMaxSize()) {
             MapPage(
                 modifier = Modifier.fillMaxSize(),
-                localPermission = localPermission,
+                localPermission = effectivePermission,
                 mapLat = mapLat,
                 mapLon = mapLon,
                 mapZoom = mapZoom,
@@ -315,7 +306,17 @@ fun ExploreSiteApp(localPermission: Boolean) {
                     onItineraryClick = { itinerary -> selectedItinerary = itinerary }
                 )
             } else if (currentDestination == AppDestinations.PROFILE) {
-                if (showMedals) {
+                if (showCreateItinerary) {
+                    CreateItineraryPage(
+                        onBack = { showCreateItinerary = false },
+                        onItineraryCreated = { 
+                            showCreateItinerary = false
+                            selectedItinerary = it
+                        },
+                        currentLanguage = currentLanguage,
+                        paddingValues = innerPadding
+                    )
+                } else if (showMedals) {
                     MedalsPage(
                         onBack = { showMedals = false },
                         currentLanguage = currentLanguage,
@@ -365,6 +366,7 @@ fun ExploreSiteApp(localPermission: Boolean) {
                 } else if (showSavedItineraries) {
                     SavedItinerariesPage(
                         onBack = { showSavedItineraries = false },
+                        onItineraryClick = { itinerary -> selectedItinerary = itinerary },
                         currentLanguage = currentLanguage,
                         paddingValues = innerPadding
                     )
@@ -397,6 +399,13 @@ fun ExploreSiteApp(localPermission: Boolean) {
                 } else {
                     ProfilePage(
                         onSavedItinerariesClick = { showSavedItineraries = true },
+                        onCreateItineraryClick = { 
+                            if (CurrentUser != null) {
+                                showCreateItinerary = true 
+                            } else {
+                                Toast.makeText(context, if(currentLanguage == "it") "Devi aver effettuato l'accesso per questa funzione" else "You must be logged in for this feature", Toast.LENGTH_SHORT).show()
+                            }
+                        },
                         onUserProfileClick = { showUserDetails = true },
                         onSettingsClick = { showSettings = true },
                         onLoginClick = { showLogin = true },

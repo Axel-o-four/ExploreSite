@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.hciproject.exploresite.R
 import com.hciproject.exploresite.TranslationManager
 import com.hciproject.exploresite.poi.PointOfInterest
+import com.hciproject.exploresite.profile.CurrentUser
 import kotlinx.coroutines.launch
 
 @Composable
@@ -43,7 +44,9 @@ fun ItineraryDetailsPage(
     var isTranslationMenuVisible by remember { mutableStateOf(false) }
 
     // State for local modifications (saved/recommended)
-    var isSaved by remember(itinerary.title) { mutableStateOf(itinerary.saved) }
+    var isSaved by remember(itinerary.title) { 
+        mutableStateOf(CurrentUser?.savedItineraries?.any { it.title == itinerary.title } == true)
+    }
     var isRecommended by remember(itinerary.title) { mutableStateOf(false) }
 
     // Animation states
@@ -190,6 +193,16 @@ fun ItineraryDetailsPage(
                 Surface(
                     onClick = {
                         isSaved = !isSaved
+                        val currentUser = CurrentUser
+                        if (currentUser != null) {
+                            val newList = if (isSaved) {
+                                currentUser.savedItineraries + itinerary
+                            } else {
+                                currentUser.savedItineraries.filter { it.title != itinerary.title }
+                            }
+                            CurrentUser = currentUser.copy(savedItineraries = newList)
+                        }
+                        
                         scope.launch {
                             savedScale.animateTo(1.2f, animationSpec = tween(100))
                             savedScale.animateTo(1f, animationSpec = spring(Spring.DampingRatioMediumBouncy))
