@@ -1,3 +1,14 @@
 <resources>
     <string name="app_name">ExploreSite</string>
+    <string name="profile_name">ALESSIO DI CAPRIO</string>
+    <string name="user_level_label">Turista</string>
+    <string name="level_label">LVL 2</string>
+    <string name="saved_itineraries">Itinerari salvati e creati</string>
+    <string name="create_itinerary">Crea Itinerario</string>
+    <string name="previously_visited">Visitato in precedenza</string>
+    <string name="belvedere_san_leucio">Belvedere di San Leucio</string>
+    <string name="il_torchio">Il Torchio</string>
+    <string name="esplora">Esplora</string>
+    <string name="mappa">Mappa</string>
+    <string name="profilo">Profilo</string>
 </resources>
