@@ -96,3 +96,29 @@ Presentazione prototipo\
 ┣ Presentazione prototipo.key - presentazione dei primi 3 assignment in formato proprietario Apple Keynote\
 ┣ Presentazione prototipo.pptx - presentazione dei primi 3 assignment in formato Office Open XML Presentation\
 ┗ Presentazione prototipo.pdf - presentazione dei primi 3 assignment in formato Portable Document Format\
+
+## Assignment #4
+
+Questo assignment richiede l'implementazione del sistema che avete progettato e del
+quale avete costruito il prototipo interattivo. Il sistema dovrà essere sottoposto a una fase finale di
+valutazione dell'usabilità con una tecnica che coinvolga gli utenti. Dovrà essere effettuato un
+testing di usabilità sul sistema funzionante.
+
+1. Implmentare il sistema con l'SDK di una piattaforma mobile
+2. Svolgere la relazione sui miglioramenti rispetto al prototipo
+3. Svolgere i questionari di testing utente con almeno 10 utenti reali 
+4. Svolgere la relazione sul testing utente
+5. Realizzare una presentazione PowerPoint per l'esposizione del progetto
+
+### Struttura della consegna
+
+Consegna assignment #4\
+┣ Assignment #4 - Relazione sui miglioramenti del sistema.docx - documento di consegna dell'assignment in formato Office Open XML Document\
+┣ Assignment #4 - Relazione sui miglioramenti del sistema.pdf - documento di consegna dell'assignment in formato Portable Document Format\
+┣ Assignment #4 - Relazione sul testing utente.docx - documento di consegna dell'assignment in formato Office Open XML Document\
+┣ Assignment #4 - Relazione sul testing utente.pdf - documento di consegna dell'assignment in formato Portable Document Format\
+┣ Link a repository GitHub.txt - Link a questa repository\
+┣ Presentazione #4 assignment.key - presentazione dei primi 3 assignment in formato proprietario Apple Keynote\
+┣ Presentazione #4 assignment.pdf - presentazione dei primi 3 assignment in formato Office Open XML Presentation\
+┣ Presentazione #4 assignment.pptx - presentazione dei primi 3 assignment in formato Portable Document Format\
+┗ Valutazione testing utente.xlsx - Excel con i questionari del testing utente\
